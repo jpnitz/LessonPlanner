@@ -8,6 +8,8 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
+import { MenuPane } from "@/components/menu/menu-pane";
+import type { StudentSafe } from "@/types/profile";
 
 const MIN_MENU_WIDTH = 220;
 const MAX_MENU_WIDTH = 520;
@@ -16,6 +18,7 @@ const COLLAPSED_WIDTH = 48;
 type AppShellProps = {
   children?: ReactNode;
   showIntro?: boolean;
+  menuStudents?: StudentSafe[];
 };
 
 function PaneToggle({
@@ -56,7 +59,11 @@ function PaneToggle({
   );
 }
 
-export function AppShell({ children, showIntro = true }: AppShellProps) {
+export function AppShell({
+  children,
+  showIntro = true,
+  menuStudents = [],
+}: AppShellProps) {
   const [menuCollapsed, setMenuCollapsed] = useState(false);
   const [calendarCollapsed, setCalendarCollapsed] = useState(false);
   const [menuWidth, setMenuWidth] = useState(320);
@@ -124,11 +131,14 @@ export function AppShell({ children, showIntro = true }: AppShellProps) {
             edge="left"
           />
           {!menuCollapsed ? (
-            <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              <p className="text-base font-semibold text-foreground">Menu</p>
-              <p className="mt-2 text-sm text-muted">
-                Navigation and student tools will appear here in later phases.
-              </p>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
+              {menuStudents.length > 0 ? (
+                <MenuPane students={menuStudents} />
+              ) : (
+                <p className="text-sm text-muted">
+                  Sign in to use lesson planner options and AI chat.
+                </p>
+              )}
             </div>
           ) : null}
         </div>

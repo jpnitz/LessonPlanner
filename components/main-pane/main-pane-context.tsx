@@ -9,11 +9,13 @@ import {
   type ReactNode,
 } from "react";
 
-export type MainPaneView = "home" | "profile";
+export type MainPaneView = "home" | "profile" | "curriculum" | "proposed-curriculum";
 
 type MainPaneContextValue = {
   view: MainPaneView;
   openProfile: () => void;
+  openCurriculum: () => void;
+  openProposedCurriculum: () => void;
   openHome: () => void;
 };
 
@@ -23,11 +25,22 @@ export function MainPaneProvider({ children }: { children: ReactNode }) {
   const [view, setView] = useState<MainPaneView>("home");
 
   const openProfile = useCallback(() => setView("profile"), []);
+  const openCurriculum = useCallback(() => setView("curriculum"), []);
+  const openProposedCurriculum = useCallback(
+    () => setView("proposed-curriculum"),
+    [],
+  );
   const openHome = useCallback(() => setView("home"), []);
 
   const value = useMemo(
-    () => ({ view, openProfile, openHome }),
-    [view, openProfile, openHome],
+    () => ({
+      view,
+      openProfile,
+      openCurriculum,
+      openProposedCurriculum,
+      openHome,
+    }),
+    [view, openProfile, openCurriculum, openProposedCurriculum, openHome],
   );
 
   return (

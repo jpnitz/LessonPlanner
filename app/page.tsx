@@ -1,12 +1,28 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { isProfileIncomplete } from "@/lib/profile/validation";
+import {
+  fetchCurricula,
+  fetchCurriculumDetail,
+  fetchStudentCurriculumIds,
+} from "@/lib/curriculum/fetch";
+import {
+  fetchInitialCurrentTopic,
+  fetchLessonPlannerSettings,
+} from "@/lib/lesson-planner/load-settings";
 import { HomeClient } from "@/components/home-client";
 import { EnvBanner } from "@/components/setup/env-banner";
+import type {
+  CurrentTopic,
+  CurriculumDetail,
+  CurriculumSummary,
+  LessonPlannerSettings,
+} from "@/types/curriculum";
 import type { Profile, StudentSafe } from "@/types/profile";
 
 export default async function Home() {
   const supabaseConfigured = isSupabaseConfigured();
+  let userId: string | null = null;
   let userName: string | null = null;
   let userEmail: string | null = null;
   let isAuthenticated = false;
@@ -14,6 +30,11 @@ export default async function Home() {
   let profile: Profile | null = null;
   let students: StudentSafe[] = [];
   let showProfileIncompleteBanner = false;
+  let curricula: CurriculumSummary[] = [];
+  let curriculumDetails: CurriculumDetail[] = [];
+  let initialSettings: LessonPlannerSettings | null = null;
+  let initialCurrentTopic: CurrentTopic | null = null;
+  let initialActiveStudentId: string | null = null;
 
   if (supabaseConfigured) {
     const supabase = await createClient();
@@ -23,6 +44,7 @@ export default async function Home() {
 
     if (user) {
       isAuthenticated = true;
+      userId = user.id;
       userEmail = user.email ?? null;
       isStudentAccount = user.user_metadata?.account_type === "student";
 
@@ -61,8 +83,48 @@ export default async function Home() {
       }
 
       const primaryStudent = students.find((student) => student.is_primary);
+      const primaryStudentId = primaryStudent?.id ?? students[0]?.id ?? null;
       if (primaryStudent) {
         showProfileIncompleteBanner = isProfileIncomplete(primaryStudent);
+      }
+
+      try {
+        initialSettings = await fetchLessonPlannerSettings(
+          supabase,
+          user.id,
+          primaryStudentId,
+        );
+        const topicState = await fetchInitialCurrentTopic(
+          supabase,
+          students,
+          initialSettings,
+        );
+        initialCurrentTopic = topicState.topic;
+        initialActiveStudentId = topicState.activeStudentId;
+
+        let curriculumIds: string[] | undefined;
+        if (initialSettings.selected_student_ids.length > 0) {
+          curriculumIds = await fetchStudentCurriculumIds(
+            supabase,
+            initialSettings.selected_student_ids,
+          );
+        }
+
+        curricula = await fetchCurricula(supabase, {
+          curriculumIds:
+            curriculumIds && curriculumIds.length > 0 ? curriculumIds : undefined,
+        });
+
+        curriculumDetails = await Promise.all(
+          curricula.map((curriculum) =>
+            fetchCurriculumDetail(supabase, curriculum.id),
+          ),
+        ).then((details) =>
+          details.filter((detail): detail is CurriculumDetail => detail !== null),
+        );
+      } catch {
+        curricula = [];
+        curriculumDetails = [];
       }
     }
   }
@@ -71,6 +133,7 @@ export default async function Home() {
     <>
       <EnvBanner configured={supabaseConfigured} />
       <HomeClient
+        userId={userId}
         isAuthenticated={isAuthenticated}
         userEmail={userEmail}
         userName={userName}
@@ -78,6 +141,11 @@ export default async function Home() {
         students={students}
         isStudentAccount={isStudentAccount}
         showProfileIncompleteBanner={showProfileIncompleteBanner}
+        curricula={curricula}
+        curriculumDetails={curriculumDetails}
+        initialSettings={initialSettings}
+        initialCurrentTopic={initialCurrentTopic}
+        initialActiveStudentId={initialActiveStudentId}
       />
     </>
   );
