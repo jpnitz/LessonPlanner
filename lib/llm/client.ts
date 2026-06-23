@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { validateAndNormalizeProposedCurriculum } from "@/lib/curriculum/validate-proposed";
+import { parseJsonAfterMarker } from "@/lib/llm/json-extract";
 import {
   PROPOSED_KSAS_MARKER,
   PROPOSED_LESSONS_MARKER,
@@ -97,72 +98,15 @@ export async function callLlm(
   return { content };
 }
 
-function stripMarkdownJsonFence(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed.startsWith("```")) return trimmed;
-
-  return trimmed
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/, "")
-    .trim();
-}
-
-function extractBalancedJsonObject(value: string): string | null {
-  const start = value.indexOf("{");
-  if (start === -1) return null;
-
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-
-  for (let index = start; index < value.length; index += 1) {
-    const char = value[index];
-
-    if (inString) {
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (char === "\\") {
-        escaped = true;
-        continue;
-      }
-      if (char === '"') {
-        inString = false;
-      }
-      continue;
-    }
-
-    if (char === '"') {
-      inString = true;
-      continue;
-    }
-
-    if (char === "{") depth += 1;
-    if (char === "}") {
-      depth -= 1;
-      if (depth === 0) {
-        return value.slice(start, index + 1);
-      }
-    }
-  }
-
-  return null;
-}
-
 export function extractProposedCurriculum(content: string) {
-  const markerIndex = content.indexOf(PROPOSED_STANDARDS_MARKER);
-  if (markerIndex === -1) {
+  const { jsonObject, visibleContent } = parseJsonAfterMarker(
+    content,
+    PROPOSED_STANDARDS_MARKER,
+  );
+
+  if (!jsonObject) {
     return { visibleContent: content, proposed: null, parseError: null };
   }
-
-  const visibleContent = content.slice(0, markerIndex).trim();
-  const jsonPart = content
-    .slice(markerIndex + PROPOSED_STANDARDS_MARKER.length)
-    .trim();
-
-  const unfenced = stripMarkdownJsonFence(jsonPart);
-  const jsonObject = extractBalancedJsonObject(unfenced) ?? unfenced;
 
   try {
     const parsed = JSON.parse(jsonObject) as unknown;
@@ -210,19 +154,27 @@ const VALID_ACTIVITY_TYPES = new Set([
   "thought_experiment",
 ]);
 
+const VALID_KSA_TYPES = new Set(["knowledge", "skill", "ability"]);
+
+function normalizeKsaType(value: string) {
+  const normalized = value.trim().toLowerCase();
+  return VALID_KSA_TYPES.has(normalized)
+    ? (normalized as "knowledge" | "skill" | "ability")
+    : null;
+}
+
 export function extractProposedLessons(content: string) {
-  const markerIndex = content.indexOf(PROPOSED_LESSONS_MARKER);
-  if (markerIndex === -1) {
+  const { jsonObject, visibleContent } = parseJsonAfterMarker(
+    content,
+    PROPOSED_LESSONS_MARKER,
+  );
+
+  if (!jsonObject) {
     return { visibleContent: content, proposed: null };
   }
 
-  const visibleContent = content.slice(0, markerIndex).trim();
-  const jsonPart = content
-    .slice(markerIndex + PROPOSED_LESSONS_MARKER.length)
-    .trim();
-
   try {
-    const parsed = JSON.parse(jsonPart) as {
+    const parsed = JSON.parse(jsonObject) as {
       lessons?: Array<{
         standard_title: string;
         standard_id?: string | null;
@@ -284,7 +236,7 @@ export function extractProposedLessons(content: string) {
 
     return { visibleContent, proposed: { lessons } };
   } catch {
-    return { visibleContent: content, proposed: null };
+    return { visibleContent, proposed: null };
   }
 }
 
@@ -302,16 +254,17 @@ Do not include the JSON block until the lesson plans are complete.`;
 }
 
 export function extractProposedKsas(content: string) {
-  const markerIndex = content.indexOf(PROPOSED_KSAS_MARKER);
-  if (markerIndex === -1) {
+  const { jsonObject, visibleContent } = parseJsonAfterMarker(
+    content,
+    PROPOSED_KSAS_MARKER,
+  );
+
+  if (!jsonObject) {
     return { visibleContent: content, ksas: null };
   }
 
-  const visibleContent = content.slice(0, markerIndex).trim();
-  const jsonPart = content.slice(markerIndex + PROPOSED_KSAS_MARKER.length).trim();
-
   try {
-    const parsed = JSON.parse(jsonPart) as {
+    const parsed = JSON.parse(jsonObject) as {
       ksas?: Array<{
         ksa_type: string;
         title: string;
@@ -324,20 +277,20 @@ export function extractProposedKsas(content: string) {
     }
 
     const ksas = parsed.ksas
-      .filter(
-        (ksa) =>
-          ksa.title &&
-          ["knowledge", "skill", "ability"].includes(ksa.ksa_type),
-      )
-      .map((ksa) => ({
-        ksa_type: ksa.ksa_type as "knowledge" | "skill" | "ability",
-        title: ksa.title,
-        description: ksa.description,
-      }));
+      .map((ksa) => {
+        const ksaType = normalizeKsaType(ksa.ksa_type ?? "");
+        if (!ksaType || !ksa.title?.trim()) return null;
+        return {
+          ksa_type: ksaType,
+          title: ksa.title.trim(),
+          description: ksa.description?.trim() || undefined,
+        };
+      })
+      .filter((ksa): ksa is NonNullable<typeof ksa> => ksa !== null);
 
     return { visibleContent, ksas: ksas.length > 0 ? ksas : null };
   } catch {
-    return { visibleContent: content, ksas: null };
+    return { visibleContent, ksas: null };
   }
 }
 
@@ -351,6 +304,7 @@ Standard: ${standard.title}
 Domain: ${standard.domain_title ?? "General"}
 Curriculum: ${standard.curriculum_title ?? "Custom"}
 Provide at least one knowledge, one skill, and one ability item.
-Append a single line starting with exactly "${PROPOSED_KSAS_MARKER}" followed by JSON (no markdown fences):
-{"ksas":[{"ksa_type":"knowledge","title":"...","description":"..."},{"ksa_type":"skill","title":"..."},{"ksa_type":"ability","title":"..."}]}`;
+Use ksa_type values exactly: knowledge, skill, ability (all lowercase).
+Append a single line starting with exactly "${PROPOSED_KSAS_MARKER}" followed by compact JSON (no markdown fences, no text after the closing brace):
+{"ksas":[{"ksa_type":"knowledge","title":"...","description":"..."},{"ksa_type":"skill","title":"...","description":"..."},{"ksa_type":"ability","title":"...","description":"..."}]}`;
 }

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { validateAndNormalizeProposedCurriculum } from "../../curriculum/validate-proposed";
-import { extractProposedCurriculum } from "../client";
-import { PROPOSED_STANDARDS_MARKER } from "../markers";
+import { extractProposedCurriculum, extractProposedKsas } from "../client";
+import { PROPOSED_KSAS_MARKER, PROPOSED_STANDARDS_MARKER } from "../markers";
 
 describe("validateAndNormalizeProposedCurriculum", () => {
   it("accepts a valid curriculum and strips ksas", () => {
@@ -101,5 +101,29 @@ ${PROPOSED_STANDARDS_MARKER}{"title":"Broken", standards: [`;
 
     assert.equal(result.proposed, null);
     assert.match(result.parseError ?? "", /standards array/i);
+  });
+});
+
+describe("extractProposedKsas", () => {
+  it("extracts KSAs with trailing assistant text", () => {
+    const content = `Here are the KSAs.
+${PROPOSED_KSAS_MARKER}{"ksas":[{"ksa_type":"knowledge","title":"Recall the integration-by-parts formula","description":"..."},{"ksa_type":"skill","title":"Apply integration by parts","description":"..."},{"ksa_type":"ability","title":"Choose u and dv strategically","description":"..."}]}
+Let me know if you'd like more detail.`;
+
+    const result = extractProposedKsas(content);
+
+    assert.equal(result.ksas?.length, 3);
+    assert.equal(result.ksas?.[0]?.ksa_type, "knowledge");
+  });
+
+  it("handles markdown fences and capitalized ksa_type values", () => {
+    const content = `${PROPOSED_KSAS_MARKER}\`\`\`json
+{"ksas":[{"ksa_type":"Knowledge","title":"K1","description":"d"},{"ksa_type":"Skill","title":"S1","description":"d"},{"ksa_type":"Ability","title":"A1","description":"d"}]}
+\`\`\``;
+
+    const result = extractProposedKsas(content);
+
+    assert.equal(result.ksas?.length, 3);
+    assert.equal(result.ksas?.[1]?.ksa_type, "skill");
   });
 });

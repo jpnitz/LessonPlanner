@@ -9,6 +9,7 @@ import {
   callLlm,
   extractProposedKsas,
   extractProposedLessons,
+  PROPOSED_KSAS_MARKER,
 } from "@/lib/llm/client";
 import {
   formatPlannerConstraints,
@@ -105,25 +106,11 @@ async function generateAndSaveKsas(
   let totalKsas = 0;
 
   for (const standard of standards) {
-    const result = await callLlm(apiKey, [
-      {
-        role: "system",
-        content: buildKsaGenerationInstruction({
-          title: standard.title,
-          domain_title: standard.domain_title,
-          curriculum_title: curriculumTitle,
-        }),
-      },
-      {
-        role: "user",
-        content: `Generate KSAs for standard "${standard.title}".`,
-      },
-    ]);
-
-    const { ksas } = extractProposedKsas(result.content);
-    if (!ksas?.length) {
-      throw new Error(`Could not generate KSAs for "${standard.title}".`);
-    }
+    const ksas = await generateKsasForStandard(
+      apiKey,
+      standard,
+      curriculumTitle,
+    );
 
     const rows = ksas.map((ksa, index) => ({
       standard_id: standard.id,
@@ -139,6 +126,43 @@ async function generateAndSaveKsas(
   }
 
   return totalKsas;
+}
+
+async function generateKsasForStandard(
+  apiKey: string,
+  standard: SavedStandard,
+  curriculumTitle: string,
+) {
+  const messages = [
+    {
+      role: "system" as const,
+      content: buildKsaGenerationInstruction({
+        title: standard.title,
+        domain_title: standard.domain_title,
+        curriculum_title: curriculumTitle,
+      }),
+    },
+    {
+      role: "user" as const,
+      content: `Generate KSAs for standard "${standard.title}".`,
+    },
+  ];
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const result = await callLlm(apiKey, messages, {
+      temperature: attempt === 0 ? 0.4 : 0.2,
+      maxTokens: 2048,
+    });
+
+    const { ksas } = extractProposedKsas(result.content);
+    if (ksas?.length) {
+      return ksas;
+    }
+  }
+
+  throw new Error(
+    `Could not generate KSAs for "${standard.title}". The assistant response did not include valid ${PROPOSED_KSAS_MARKER} JSON.`,
+  );
 }
 
 async function generateFirstWeekLessons(
