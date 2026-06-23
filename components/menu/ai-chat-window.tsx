@@ -40,6 +40,7 @@ export function AiChatWindow({
   } = useMenuChat();
   const { setProposedCurriculum } = useProposedCurriculum();
   const { openChat } = useMainPane();
+  const { clearTopic } = useCurrentTopic();
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [missingKeyHelp, setMissingKeyHelp] = useState<string | null>(null);
@@ -61,10 +62,12 @@ export function AiChatWindow({
   const handleResetChat = useCallback(() => {
     resetChat();
     setPendingProposal(null);
+    setProposedCurriculum(null);
     setError(null);
     setMissingKeyHelp(null);
     onDraftChange("");
-  }, [resetChat, onDraftChange]);
+    void clearTopic();
+  }, [resetChat, onDraftChange, setProposedCurriculum, clearTopic]);
 
   const sendChat = useCallback(
     async (mode: "chat" | "test_knowledge" | "create_curriculum") => {
@@ -118,13 +121,14 @@ export function AiChatWindow({
             messages: outboundMessages,
             studentId:
               settings.selected_student_ids[0] ?? currentTopic?.studentId ?? null,
-            currentTopic: currentTopic
-              ? {
-                  standardTitle: currentTopic.standardTitle,
-                  domainTitle: currentTopic.domainTitle,
-                  curriculumTitle: currentTopic.curriculumTitle,
-                }
-              : undefined,
+            currentTopic:
+              mode !== "create_curriculum" && currentTopic
+                ? {
+                    standardTitle: currentTopic.standardTitle,
+                    domainTitle: currentTopic.domainTitle,
+                    curriculumTitle: currentTopic.curriculumTitle,
+                  }
+                : undefined,
           }),
         });
 

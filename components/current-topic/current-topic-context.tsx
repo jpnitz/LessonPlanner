@@ -62,7 +62,7 @@ export function CurrentTopicProvider({
   }, []);
 
   const clearTopic = useCallback(async () => {
-    const studentId = activeStudentId;
+    const studentId = currentTopic?.studentId ?? activeStudentId;
     setCurrentTopic(null);
     if (!studentId) return;
 
@@ -71,7 +71,7 @@ export function CurrentTopicProvider({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ student_id: studentId }),
     });
-  }, [activeStudentId]);
+  }, [activeStudentId, currentTopic?.studentId]);
 
   const value = useMemo(
     () => ({
