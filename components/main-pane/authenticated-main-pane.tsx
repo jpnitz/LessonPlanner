@@ -1,7 +1,9 @@
 "use client";
 
+import type { CurriculumDetail, CurriculumSummary } from "@/types/curriculum";
 import type { Profile, StudentSafe } from "@/types/profile";
 import { useMainPane } from "@/components/main-pane/main-pane-context";
+import { CurriculumPane } from "@/components/curriculum/curriculum-pane";
 import { ProfilePane } from "@/components/profile/profile-pane";
 import { CompleteProfileBanner } from "@/components/profile/complete-profile-banner";
 
@@ -11,6 +13,8 @@ type AuthenticatedMainPaneProps = {
   students: StudentSafe[];
   isStudentAccount: boolean;
   showProfileIncompleteBanner: boolean;
+  curricula: CurriculumSummary[];
+  curriculumDetails: CurriculumDetail[];
 };
 
 export function AuthenticatedMainPane({
@@ -19,8 +23,19 @@ export function AuthenticatedMainPane({
   students,
   isStudentAccount,
   showProfileIncompleteBanner,
+  curricula,
+  curriculumDetails,
 }: AuthenticatedMainPaneProps) {
   const { view } = useMainPane();
+
+  if (view === "curriculum") {
+    return (
+      <CurriculumPane
+        curricula={curricula}
+        curriculumDetails={curriculumDetails}
+      />
+    );
+  }
 
   if (view === "profile") {
     return (
@@ -54,6 +69,10 @@ export function AuthenticatedMainPane({
             <li>
               <strong className="text-foreground">Calendar</strong> (top right):
               click the bar to show or hide.
+            </li>
+            <li>
+              <strong className="text-foreground">Curriculum</strong> (header):
+              browse learning standards and select a current topic.
             </li>
             <li>
               <strong className="text-foreground">Profile</strong> (header): open

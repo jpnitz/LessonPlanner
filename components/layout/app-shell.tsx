@@ -8,6 +8,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
+import { MenuPaneContent } from "@/components/layout/menu-pane-content";
 
 const MIN_MENU_WIDTH = 220;
 const MAX_MENU_WIDTH = 520;
@@ -125,10 +126,7 @@ export function AppShell({ children, showIntro = true }: AppShellProps) {
           />
           {!menuCollapsed ? (
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              <p className="text-base font-semibold text-foreground">Menu</p>
-              <p className="mt-2 text-sm text-muted">
-                Navigation and student tools will appear here in later phases.
-              </p>
+              <MenuPaneContent />
             </div>
           ) : null}
         </div>

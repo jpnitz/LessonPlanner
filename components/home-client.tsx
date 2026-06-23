@@ -1,5 +1,6 @@
 "use client";
 
+import type { CurriculumDetail, CurriculumSummary } from "@/types/curriculum";
 import type { Profile, StudentSafe } from "@/types/profile";
 import { SiteHeader } from "@/components/layout/site-header";
 import { AppShell } from "@/components/layout/app-shell";
@@ -14,6 +15,8 @@ type HomeClientProps = {
   students: StudentSafe[];
   isStudentAccount: boolean;
   showProfileIncompleteBanner: boolean;
+  curricula: CurriculumSummary[];
+  curriculumDetails: CurriculumDetail[];
 };
 
 export function HomeClient({
@@ -24,6 +27,8 @@ export function HomeClient({
   students,
   isStudentAccount,
   showProfileIncompleteBanner,
+  curricula,
+  curriculumDetails,
 }: HomeClientProps) {
   return (
     <div className="flex h-screen flex-col overflow-hidden">
@@ -40,6 +45,8 @@ export function HomeClient({
             students={students}
             isStudentAccount={isStudentAccount}
             showProfileIncompleteBanner={showProfileIncompleteBanner}
+            curricula={curricula}
+            curriculumDetails={curriculumDetails}
           />
         ) : isAuthenticated ? (
           <div className="mx-auto max-w-lg rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger">

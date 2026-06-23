@@ -1,8 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { isProfileIncomplete } from "@/lib/profile/validation";
+import {
+  fetchCurricula,
+  fetchCurriculumDetail,
+} from "@/lib/curriculum/fetch";
 import { HomeClient } from "@/components/home-client";
 import { EnvBanner } from "@/components/setup/env-banner";
+import type { CurriculumDetail, CurriculumSummary } from "@/types/curriculum";
 import type { Profile, StudentSafe } from "@/types/profile";
 
 export default async function Home() {
@@ -14,6 +19,8 @@ export default async function Home() {
   let profile: Profile | null = null;
   let students: StudentSafe[] = [];
   let showProfileIncompleteBanner = false;
+  let curricula: CurriculumSummary[] = [];
+  let curriculumDetails: CurriculumDetail[] = [];
 
   if (supabaseConfigured) {
     const supabase = await createClient();
@@ -64,6 +71,20 @@ export default async function Home() {
       if (primaryStudent) {
         showProfileIncompleteBanner = isProfileIncomplete(primaryStudent);
       }
+
+      try {
+        curricula = await fetchCurricula(supabase);
+        curriculumDetails = await Promise.all(
+          curricula.map((curriculum) =>
+            fetchCurriculumDetail(supabase, curriculum.id),
+          ),
+        ).then((details) =>
+          details.filter((detail): detail is CurriculumDetail => detail !== null),
+        );
+      } catch {
+        curricula = [];
+        curriculumDetails = [];
+      }
     }
   }
 
@@ -78,6 +99,8 @@ export default async function Home() {
         students={students}
         isStudentAccount={isStudentAccount}
         showProfileIncompleteBanner={showProfileIncompleteBanner}
+        curricula={curricula}
+        curriculumDetails={curriculumDetails}
       />
     </>
   );
