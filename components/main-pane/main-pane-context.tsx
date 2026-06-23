@@ -22,13 +22,16 @@ export type MainPaneView =
 type MainPaneContextValue = {
   view: MainPaneView;
   selectedLessonEvent: CalendarEventDisplay | null;
+  focusCurriculumId: string | null;
   openProfile: () => void;
   openChat: () => void;
   openCurriculum: () => void;
+  openCurriculumWithId: (curriculumId: string) => void;
   openProposedCurriculum: () => void;
   openProposedLessons: () => void;
   openLesson: (event: CalendarEventDisplay) => void;
   openHome: () => void;
+  clearFocusCurriculum: () => void;
 };
 
 const MainPaneContext = createContext<MainPaneContextValue | null>(null);
@@ -37,10 +40,20 @@ export function MainPaneProvider({ children }: { children: ReactNode }) {
   const [view, setView] = useState<MainPaneView>("home");
   const [selectedLessonEvent, setSelectedLessonEvent] =
     useState<CalendarEventDisplay | null>(null);
+  const [focusCurriculumId, setFocusCurriculumId] = useState<string | null>(
+    null,
+  );
 
   const openProfile = useCallback(() => setView("profile"), []);
   const openChat = useCallback(() => setView("chat"), []);
   const openCurriculum = useCallback(() => setView("curriculum"), []);
+  const openCurriculumWithId = useCallback((curriculumId: string) => {
+    setFocusCurriculumId(curriculumId);
+    setView("curriculum");
+  }, []);
+  const clearFocusCurriculum = useCallback(() => {
+    setFocusCurriculumId(null);
+  }, []);
   const openProposedCurriculum = useCallback(
     () => setView("proposed-curriculum"),
     [],
@@ -59,24 +72,30 @@ export function MainPaneProvider({ children }: { children: ReactNode }) {
     () => ({
       view,
       selectedLessonEvent,
+      focusCurriculumId,
       openProfile,
       openChat,
       openCurriculum,
+      openCurriculumWithId,
       openProposedCurriculum,
       openProposedLessons,
       openLesson,
       openHome,
+      clearFocusCurriculum,
     }),
     [
       view,
       selectedLessonEvent,
+      focusCurriculumId,
       openProfile,
       openChat,
       openCurriculum,
+      openCurriculumWithId,
       openProposedCurriculum,
       openProposedLessons,
       openLesson,
       openHome,
+      clearFocusCurriculum,
     ],
   );
 

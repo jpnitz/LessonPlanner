@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchCalendarEvents, normalizeEvent } from "@/lib/calendar/fetch";
 import { endOfDay, startOfDay } from "@/lib/calendar/date-utils";
 import { slugifyCurriculumTitle } from "@/lib/curriculum/slug";
+import { fetchCurriculumDetail } from "@/lib/curriculum/fetch";
 import {
   buildKsaGenerationInstruction,
   buildProposedLessonsInstruction,
@@ -14,7 +15,11 @@ import {
   scheduleLessonSlots,
 } from "@/lib/lesson-planner/schedule";
 import type { CalendarEventDisplay } from "@/types/calendar";
-import type { LessonPlannerSettings, ProposedCurriculum } from "@/types/curriculum";
+import type {
+  CurriculumDetail,
+  LessonPlannerSettings,
+  ProposedCurriculum,
+} from "@/types/curriculum";
 import type { ProposedLesson } from "@/types/lesson";
 
 type SavedStandard = {
@@ -31,6 +36,7 @@ export type BuildFromChatResult = {
   ksasCount: number;
   lessonsCount: number;
   events: CalendarEventDisplay[];
+  curriculumDetail: CurriculumDetail;
 };
 
 async function saveProposedCurriculum(
@@ -347,6 +353,15 @@ export async function buildCurriculumFromChat(options: {
     options.settings,
   );
 
+  const curriculumDetail = await fetchCurriculumDetail(
+    options.supabase,
+    saved.curriculumId,
+  );
+
+  if (!curriculumDetail) {
+    throw new Error("Saved curriculum could not be loaded.");
+  }
+
   return {
     curriculumId: saved.curriculumId,
     curriculumTitle: saved.curriculumTitle,
@@ -354,5 +369,6 @@ export async function buildCurriculumFromChat(options: {
     ksasCount,
     lessonsCount: events.length,
     events,
+    curriculumDetail,
   };
 }
