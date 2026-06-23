@@ -51,7 +51,7 @@ function buildStandardsPayload(
         standard_title: standard.title,
         curriculum_id: null,
         curriculum_title: body.proposedCurriculum!.title,
-        ksas: standard.ksas.map((ksa) => ({
+        ksas: (standard.ksas ?? []).map((ksa) => ({
           ksa_type: ksa.ksa_type,
           title: ksa.title,
           description: ksa.description ?? null,

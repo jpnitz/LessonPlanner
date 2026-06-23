@@ -103,7 +103,7 @@ export function extractProposedCurriculum(content: string) {
       standards: Array<{
         title: string;
         domain_title?: string;
-        ksas: Array<{
+        ksas?: Array<{
           ksa_type: "knowledge" | "skill" | "ability";
           title: string;
           description?: string;
@@ -117,9 +117,9 @@ export function extractProposedCurriculum(content: string) {
 }
 
 export function buildProposedStandardsInstruction() {
-  return `When you have gathered enough information about the learner's prior knowledge, propose learning standards.
+  return `When you have gathered enough information about the learner's prior knowledge, propose learning standards (titles and optional domain groupings only — KSAs will be generated separately later).
 Append a single line starting with exactly "${PROPOSED_STANDARDS_MARKER}" followed by JSON (no markdown fences) in this shape:
-{"title":"Subject name","description":"Optional summary","standards":[{"title":"Standard title","domain_title":"Optional domain","ksas":[{"ksa_type":"knowledge","title":"...","description":"..."},{"ksa_type":"skill","title":"..."},{"ksa_type":"ability","title":"..."}]}]}
+{"title":"Subject name","description":"Optional summary","standards":[{"title":"Standard title","domain_title":"Optional domain"}]}
 Do not include the JSON block until you are ready to propose standards.`;
 }
 
@@ -229,3 +229,61 @@ Do not include the JSON block until the lesson plans are complete.`;
 }
 
 export { PROPOSED_LESSONS_MARKER };
+
+const PROPOSED_KSAS_MARKER = "PROPOSED_KSAS_JSON:";
+
+export function extractProposedKsas(content: string) {
+  const markerIndex = content.indexOf(PROPOSED_KSAS_MARKER);
+  if (markerIndex === -1) {
+    return { visibleContent: content, ksas: null };
+  }
+
+  const visibleContent = content.slice(0, markerIndex).trim();
+  const jsonPart = content.slice(markerIndex + PROPOSED_KSAS_MARKER.length).trim();
+
+  try {
+    const parsed = JSON.parse(jsonPart) as {
+      ksas?: Array<{
+        ksa_type: string;
+        title: string;
+        description?: string;
+      }>;
+    };
+
+    if (!Array.isArray(parsed.ksas) || parsed.ksas.length === 0) {
+      return { visibleContent, ksas: null };
+    }
+
+    const ksas = parsed.ksas
+      .filter(
+        (ksa) =>
+          ksa.title &&
+          ["knowledge", "skill", "ability"].includes(ksa.ksa_type),
+      )
+      .map((ksa) => ({
+        ksa_type: ksa.ksa_type as "knowledge" | "skill" | "ability",
+        title: ksa.title,
+        description: ksa.description,
+      }));
+
+    return { visibleContent, ksas: ksas.length > 0 ? ksas : null };
+  } catch {
+    return { visibleContent: content, ksas: null };
+  }
+}
+
+export function buildKsaGenerationInstruction(standard: {
+  title: string;
+  domain_title?: string | null;
+  curriculum_title?: string | null;
+}) {
+  return `Generate Knowledge, Skill, and Ability (KSA) items for this learning standard.
+Standard: ${standard.title}
+Domain: ${standard.domain_title ?? "General"}
+Curriculum: ${standard.curriculum_title ?? "Custom"}
+Provide at least one knowledge, one skill, and one ability item.
+Append a single line starting with exactly "${PROPOSED_KSAS_MARKER}" followed by JSON (no markdown fences):
+{"ksas":[{"ksa_type":"knowledge","title":"...","description":"..."},{"ksa_type":"skill","title":"..."},{"ksa_type":"ability","title":"..."}]}`;
+}
+
+export { PROPOSED_KSAS_MARKER };

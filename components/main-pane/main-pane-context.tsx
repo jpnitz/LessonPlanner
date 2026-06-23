@@ -12,6 +12,7 @@ import type { CalendarEventDisplay } from "@/types/calendar";
 
 export type MainPaneView =
   | "home"
+  | "chat"
   | "profile"
   | "curriculum"
   | "proposed-curriculum"
@@ -22,6 +23,7 @@ type MainPaneContextValue = {
   view: MainPaneView;
   selectedLessonEvent: CalendarEventDisplay | null;
   openProfile: () => void;
+  openChat: () => void;
   openCurriculum: () => void;
   openProposedCurriculum: () => void;
   openProposedLessons: () => void;
@@ -37,6 +39,7 @@ export function MainPaneProvider({ children }: { children: ReactNode }) {
     useState<CalendarEventDisplay | null>(null);
 
   const openProfile = useCallback(() => setView("profile"), []);
+  const openChat = useCallback(() => setView("chat"), []);
   const openCurriculum = useCallback(() => setView("curriculum"), []);
   const openProposedCurriculum = useCallback(
     () => setView("proposed-curriculum"),
@@ -57,6 +60,7 @@ export function MainPaneProvider({ children }: { children: ReactNode }) {
       view,
       selectedLessonEvent,
       openProfile,
+      openChat,
       openCurriculum,
       openProposedCurriculum,
       openProposedLessons,
@@ -67,6 +71,7 @@ export function MainPaneProvider({ children }: { children: ReactNode }) {
       view,
       selectedLessonEvent,
       openProfile,
+      openChat,
       openCurriculum,
       openProposedCurriculum,
       openProposedLessons,

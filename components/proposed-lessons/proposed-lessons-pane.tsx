@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { ProposedLessonPlan } from "@/types/lesson";
 import { ACTIVITY_TYPE_LABELS } from "@/types/lesson";
-import { formatEventTime } from "@/lib/calendar/date-utils";
+import { formatEventTime, DATE_LOCALE } from "@/lib/calendar/date-utils";
 import { useProposedLessons } from "@/components/proposed-lessons/proposed-lessons-context";
 import { useMainPane } from "@/components/main-pane/main-pane-context";
 import { Button } from "@/components/ui/button";
@@ -111,7 +111,7 @@ export function ProposedLessonsPane() {
               </div>
               {lesson.scheduled_starts_at && lesson.scheduled_ends_at ? (
                 <p className="rounded-md bg-accent-soft px-2 py-1 text-xs text-foreground">
-                  {new Date(lesson.scheduled_starts_at).toLocaleDateString(undefined, {
+                  {new Date(lesson.scheduled_starts_at).toLocaleDateString(DATE_LOCALE, {
                     weekday: "short",
                     month: "short",
                     day: "numeric",

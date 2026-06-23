@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { CalendarEventDisplay } from "@/types/calendar";
 import type { LessonActivity } from "@/types/lesson";
 import { ACTIVITY_TYPE_LABELS } from "@/types/lesson";
-import { formatEventTime } from "@/lib/calendar/date-utils";
+import { formatEventTime, DATE_LOCALE } from "@/lib/calendar/date-utils";
 import { useMainPane } from "@/components/main-pane/main-pane-context";
 import { Button } from "@/components/ui/button";
 import { eventDisplayLabel } from "@/components/calendar/calendar-event-chip";
@@ -83,7 +83,7 @@ export function LessonPane({ event }: LessonPaneProps) {
           <div>
             <dt className="text-xs font-medium uppercase text-muted">When</dt>
             <dd className="mt-1">
-              {new Date(event.starts_at).toLocaleString(undefined, {
+              {new Date(event.starts_at).toLocaleString(DATE_LOCALE, {
                 weekday: "short",
                 month: "short",
                 day: "numeric",

@@ -9,6 +9,7 @@ import { ProposedLessonsPane } from "@/components/proposed-lessons/proposed-less
 import { ProfilePane } from "@/components/profile/profile-pane";
 import { CompleteProfileBanner } from "@/components/profile/complete-profile-banner";
 import { LessonPane } from "@/components/main-pane/lesson-pane";
+import { ChatPane } from "@/components/main-pane/chat-pane";
 
 type AuthenticatedMainPaneProps = {
   profile: Profile;
@@ -30,6 +31,10 @@ export function AuthenticatedMainPane({
   curriculumDetails,
 }: AuthenticatedMainPaneProps) {
   const { view, selectedLessonEvent } = useMainPane();
+
+  if (view === "chat") {
+    return <ChatPane students={students} />;
+  }
 
   if (view === "lesson" && selectedLessonEvent) {
     return <LessonPane event={selectedLessonEvent} />;
@@ -79,8 +84,8 @@ export function AuthenticatedMainPane({
           <p className="font-medium">How to use the app shell</p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
             <li>
-              <strong className="text-foreground">Menu</strong> (left): lesson
-              planner options and AI chat.
+              <strong className="text-foreground">Menu</strong> (left): AI chat
+              (responses appear here in the main pane).
             </li>
             <li>
               <strong className="text-foreground">Calendar</strong> (top right):

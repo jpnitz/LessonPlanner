@@ -57,17 +57,25 @@ export function resolveLessonDurationMinutes(settings: LessonPlannerSettings) {
   return DEFAULT_LESSON_MINUTES;
 }
 
+function startOfDay(date: Date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
 export function scheduleLessonSlots(options: {
   lessonCount: number;
   settings: LessonPlannerSettings;
   occupied: TimeSlot[];
   startFrom?: Date;
+  maxDays?: number;
 }): TimeSlot[] {
   const { lessonCount, settings, occupied } = options;
   if (lessonCount <= 0) return [];
 
   const allowedDays = resolveAllowedWeekdays(settings);
   const durationMinutes = resolveLessonDurationMinutes(settings);
+  const maxDays = options.maxDays ?? 365;
   const slots: TimeSlot[] = [];
   let cursor = withTime(
     options.startFrom ?? new Date(),
@@ -78,9 +86,15 @@ export function scheduleLessonSlots(options: {
     cursor = withTime(new Date(cursor.getTime() + 24 * 60 * 60 * 1000), DEFAULT_START_HOUR);
   }
 
+  const searchStart = startOfDay(cursor);
   let safety = 0;
   while (slots.length < lessonCount && safety < 400) {
     safety += 1;
+    const daysFromStart = Math.floor(
+      (startOfDay(cursor).getTime() - searchStart.getTime()) / (24 * 60 * 60 * 1000),
+    );
+    if (daysFromStart >= maxDays) break;
+
     const weekday = isoWeekday(cursor);
 
     if (!allowedDays.includes(weekday)) {
