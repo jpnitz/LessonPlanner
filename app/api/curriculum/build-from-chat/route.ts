@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedParent, jsonError } from "@/lib/api/auth";
 import { buildCurriculumFromChat } from "@/lib/curriculum/build-from-chat";
+import { validateAndNormalizeProposedCurriculum } from "@/lib/curriculum/validate-proposed";
 import { resolveLlmApiKey } from "@/lib/llm/client";
 import {
   assertStudentAccess,
@@ -25,9 +26,14 @@ export async function POST(request: Request) {
     return jsonError("Student accounts cannot build curricula.", 403);
   }
 
-  if (!body.proposedCurriculum?.title || !body.proposedCurriculum.standards?.length) {
-    return jsonError("Proposed curriculum with standards is required.", 400);
+  const validated = validateAndNormalizeProposedCurriculum(
+    body.proposedCurriculum,
+  );
+  if (!validated.ok) {
+    return jsonError(validated.error, 400);
   }
+
+  const proposedCurriculum = validated.curriculum;
 
   const students = await getManagedStudents(supabase, user.id, isStudentAccount);
 
@@ -95,7 +101,7 @@ export async function POST(request: Request) {
       supabase,
       userId: user.id,
       studentId: activeStudentId,
-      proposedCurriculum: body.proposedCurriculum,
+      proposedCurriculum,
       settings,
       apiKey: keyResult.key,
     });

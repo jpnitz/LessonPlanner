@@ -21,6 +21,7 @@ type AiChatWindowProps = {
 type ApiChatResponse = {
   message?: string;
   proposedCurriculum?: ProposedCurriculum | null;
+  proposedCurriculumError?: string | null;
   error?: string;
 };
 
@@ -38,7 +39,12 @@ export function AiChatWindow({
     markCreateCurriculum,
     resetChat,
   } = useMenuChat();
-  const { setProposedCurriculum } = useProposedCurriculum();
+  const {
+    setProposedCurriculum,
+    setProposedCurriculumError,
+    clearProposedCurriculum,
+    proposedCurriculumError,
+  } = useProposedCurriculum();
   const { openChat } = useMainPane();
   const { clearTopic } = useCurrentTopic();
   const [isSending, setIsSending] = useState(false);
@@ -62,12 +68,12 @@ export function AiChatWindow({
   const handleResetChat = useCallback(() => {
     resetChat();
     setPendingProposal(null);
-    setProposedCurriculum(null);
+    clearProposedCurriculum();
     setError(null);
     setMissingKeyHelp(null);
     onDraftChange("");
     void clearTopic();
-  }, [resetChat, onDraftChange, setProposedCurriculum, clearTopic]);
+  }, [resetChat, onDraftChange, clearProposedCurriculum, clearTopic]);
 
   const sendChat = useCallback(
     async (mode: "chat" | "test_knowledge" | "create_curriculum") => {
@@ -157,6 +163,9 @@ export function AiChatWindow({
         if (data.proposedCurriculum) {
           setPendingProposal(data.proposedCurriculum);
           setProposedCurriculum(data.proposedCurriculum);
+        } else if (data.proposedCurriculumError) {
+          setPendingProposal(null);
+          setProposedCurriculumError(data.proposedCurriculumError);
         }
       } catch (sendError) {
         setError(
@@ -177,6 +186,7 @@ export function AiChatWindow({
       markStandardChat,
       openChat,
       setProposedCurriculum,
+      setProposedCurriculumError,
     ],
   );
 
@@ -233,14 +243,21 @@ export function AiChatWindow({
         ) : null}
       </div>
 
+      {proposedCurriculumError ? (
+        <div className="border-t border-border bg-danger-soft p-3 text-sm text-danger">
+          {proposedCurriculumError}
+        </div>
+      ) : null}
+
       {pendingProposal ? (
         <div className="border-t border-border bg-accent-soft/40 p-3 text-sm">
           <p className="font-medium text-foreground">
             Proposed curriculum: {pendingProposal.title}
           </p>
           <p className="mt-1 text-muted">
-            {pendingProposal.standards.length} standard
-            {pendingProposal.standards.length === 1 ? "" : "s"} ready to review.
+            {(pendingProposal.standards ?? []).length} standard
+            {(pendingProposal.standards ?? []).length === 1 ? "" : "s"} ready to
+            review.
           </p>
           <Button
             type="button"

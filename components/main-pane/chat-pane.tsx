@@ -10,6 +10,7 @@ import { useCurrentTopic } from "@/components/current-topic/current-topic-contex
 import { resolveActiveStudentId } from "@/lib/students/access";
 import type { StudentSafe } from "@/types/profile";
 import { Button } from "@/components/ui/button";
+import { ProposedStandardsList } from "@/components/proposed-curriculum/proposed-standards-list";
 
 type ChatPaneProps = {
   students: StudentSafe[];
@@ -18,7 +19,11 @@ type ChatPaneProps = {
 export function ChatPane({ students }: ChatPaneProps) {
   const router = useRouter();
   const { messages } = useMenuChat();
-  const { proposedCurriculum, setProposedCurriculum } = useProposedCurriculum();
+  const {
+    proposedCurriculum,
+    proposedCurriculumError,
+    clearProposedCurriculum,
+  } = useProposedCurriculum();
   const { settings } = useLessonPlanner();
   const { currentTopic } = useCurrentTopic();
   const [isBuilding, setIsBuilding] = useState(false);
@@ -71,7 +76,7 @@ export function ChatPane({ students }: ChatPaneProps) {
       setSuccess(
         `Saved ${result.standardsCount} standard(s), generated ${result.ksasCount} KSA(s), and scheduled ${result.lessonsCount} lesson(s) for the first week.`,
       );
-      setProposedCurriculum(null);
+      clearProposedCurriculum();
       router.refresh();
     } catch (buildError) {
       setError(
@@ -119,6 +124,12 @@ export function ChatPane({ students }: ChatPaneProps) {
         )}
       </section>
 
+      {proposedCurriculumError ? (
+        <p className="rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
+          {proposedCurriculumError}
+        </p>
+      ) : null}
+
       {proposedCurriculum ? (
         <section className="space-y-4 rounded-lg border border-accent/40 bg-accent-soft/30 p-4">
           <div>
@@ -132,19 +143,7 @@ export function ChatPane({ students }: ChatPaneProps) {
             ) : null}
           </div>
 
-          <ul className="space-y-2">
-            {proposedCurriculum.standards.map((standard, index) => (
-              <li
-                key={`${standard.title}-${index}`}
-                className="rounded-md border border-border bg-surface px-3 py-2 text-sm"
-              >
-                <p className="font-medium text-foreground">{standard.title}</p>
-                {standard.domain_title ? (
-                  <p className="text-xs text-muted">{standard.domain_title}</p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
+          <ProposedStandardsList curriculum={proposedCurriculum} />
 
           <p className="text-xs text-muted">
             Saving will: (1) write standards to the database, (2) ask the LLM to
