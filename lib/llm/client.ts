@@ -1,6 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export async function getStudentLlmApiKey(studentId: string): Promise<string | null> {
+export async function getStudentLlmApiKey(
+  studentId: string,
+): Promise<string | null> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("student_secrets")
@@ -10,6 +12,27 @@ export async function getStudentLlmApiKey(studentId: string): Promise<string | n
 
   if (error || !data?.llm_api_key) return null;
   return data.llm_api_key;
+}
+
+/** Student key first; falls back to server OPENAI_API_KEY in .env.local */
+export async function resolveLlmApiKey(
+  studentId: string,
+): Promise<{ key: string; source: "student" | "default" } | null> {
+  const studentKey = await getStudentLlmApiKey(studentId);
+  if (studentKey) {
+    return { key: studentKey, source: "student" };
+  }
+
+  const defaultKey = process.env.OPENAI_API_KEY?.trim();
+  if (defaultKey) {
+    return { key: defaultKey, source: "default" };
+  }
+
+  return null;
+}
+
+export function isDefaultLlmConfigured() {
+  return Boolean(process.env.OPENAI_API_KEY?.trim());
 }
 
 export type LlmMessage = {
@@ -69,7 +92,9 @@ export function extractProposedCurriculum(content: string) {
   }
 
   const visibleContent = content.slice(0, markerIndex).trim();
-  const jsonPart = content.slice(markerIndex + PROPOSED_STANDARDS_MARKER.length).trim();
+  const jsonPart = content
+    .slice(markerIndex + PROPOSED_STANDARDS_MARKER.length)
+    .trim();
 
   try {
     const proposed = JSON.parse(jsonPart) as {

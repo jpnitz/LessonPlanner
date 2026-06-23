@@ -6,6 +6,12 @@ import { useLessonPlanner } from "@/components/lesson-planner/lesson-planner-con
 import { resolveActiveStudentId } from "@/lib/students/access";
 import type { StudentSafe } from "@/types/profile";
 
+const KSA_LABELS = {
+  knowledge: "Knowledge",
+  skill: "Skill",
+  ability: "Ability",
+} as const;
+
 type CurriculumDetailViewProps = {
   curriculum: CurriculumDetail;
   students: StudentSafe[];
@@ -79,11 +85,23 @@ export function CurriculumDetailView({
                       }`}
                     >
                       <span>{standard.title}</span>
-                      {standard.ksas.length > 0 ? (
-                        <span className="mt-1 block text-xs text-muted">
-                          {standard.ksas.length} KSA
-                          {standard.ksas.length === 1 ? "" : "s"}
-                        </span>
+                      {isSelected && standard.ksas.length > 0 ? (
+                        <ul className="mt-3 space-y-2 border-t border-border/60 pt-3">
+                          {standard.ksas.map((ksa) => (
+                            <li
+                              key={ksa.id}
+                              className="rounded-md bg-background/80 px-3 py-2 text-xs"
+                            >
+                              <span className="font-semibold text-accent">
+                                {KSA_LABELS[ksa.ksa_type]}:
+                              </span>{" "}
+                              <span className="text-foreground">{ksa.title}</span>
+                              {ksa.description ? (
+                                <p className="mt-1 text-muted">{ksa.description}</p>
+                              ) : null}
+                            </li>
+                          ))}
+                        </ul>
                       ) : null}
                     </button>
                   </li>

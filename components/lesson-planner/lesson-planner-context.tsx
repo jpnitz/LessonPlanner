@@ -16,16 +16,20 @@ type LessonPlannerContextValue = {
   settings: LessonPlannerSettings;
   isLoading: boolean;
   isSaving: boolean;
+  saveError: string | null;
   updateSettings: (patch: Partial<LessonPlannerSettings>) => void;
   saveSettings: () => Promise<void>;
 };
 
-const defaultSettings = (userId: string): LessonPlannerSettings => ({
+const defaultSettings = (
+  userId: string,
+  primaryStudentId?: string | null,
+): LessonPlannerSettings => ({
   user_id: userId,
   hours_per_week: null,
   hours_per_day: null,
   days_of_week: [],
-  selected_student_ids: [],
+  selected_student_ids: primaryStudentId ? [primaryStudentId] : [],
 });
 
 const LessonPlannerContext = createContext<LessonPlannerContextValue | null>(
@@ -36,24 +40,60 @@ type LessonPlannerProviderProps = {
   children: ReactNode;
   userId: string;
   initialSettings?: LessonPlannerSettings | null;
+  primaryStudentId?: string | null;
 };
+
+function withPrimaryDefault(
+  settings: LessonPlannerSettings,
+  primaryStudentId?: string | null,
+): LessonPlannerSettings {
+  if (
+    settings.selected_student_ids.length === 0 &&
+    primaryStudentId
+  ) {
+    return {
+      ...settings,
+      selected_student_ids: [primaryStudentId],
+    };
+  }
+  return settings;
+}
 
 export function LessonPlannerProvider({
   children,
   userId,
   initialSettings,
+  primaryStudentId,
 }: LessonPlannerProviderProps) {
+  const hydratedRef = useRef(false);
+  const settingsRef = useRef<LessonPlannerSettings>(
+    withPrimaryDefault(
+      initialSettings ?? defaultSettings(userId, primaryStudentId),
+      primaryStudentId,
+    ),
+  );
+
   const [settings, setSettings] = useState<LessonPlannerSettings>(
-    initialSettings ?? defaultSettings(userId),
+    settingsRef.current,
   );
   const [isLoading, setIsLoading] = useState(!initialSettings);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef(false);
 
   useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  useEffect(() => {
+    if (hydratedRef.current) return;
+    hydratedRef.current = true;
+
     if (initialSettings) {
-      setSettings(initialSettings);
+      const merged = withPrimaryDefault(initialSettings, primaryStudentId);
+      settingsRef.current = merged;
+      setSettings(merged);
       setIsLoading(false);
       return;
     }
@@ -65,9 +105,17 @@ export function LessonPlannerProvider({
         const response = await fetch("/api/lesson-planner/settings");
         if (!response.ok) throw new Error("Failed to load settings.");
         const data = await response.json();
-        if (!cancelled) setSettings(data.settings);
+        if (!cancelled) {
+          const merged = withPrimaryDefault(data.settings, primaryStudentId);
+          settingsRef.current = merged;
+          setSettings(merged);
+        }
       } catch {
-        if (!cancelled) setSettings(defaultSettings(userId));
+        if (!cancelled) {
+          const fallback = defaultSettings(userId, primaryStudentId);
+          settingsRef.current = fallback;
+          setSettings(fallback);
+        }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -77,27 +125,44 @@ export function LessonPlannerProvider({
     return () => {
       cancelled = true;
     };
-  }, [initialSettings, userId]);
+  }, [initialSettings, primaryStudentId, userId]);
 
   const saveSettings = useCallback(async () => {
+    const payload = settingsRef.current;
     setIsSaving(true);
+    setSaveError(null);
     pendingSaveRef.current = false;
+
     try {
       const response = await fetch("/api/lesson-planner/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error("Failed to save settings.");
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(
+          data.error ??
+            "Could not save lesson planner settings. Run migration 004 in Supabase if you have not yet.",
+        );
+      }
+
       const data = await response.json();
-      setSettings(data.settings);
+      const merged = withPrimaryDefault(data.settings, primaryStudentId);
+      settingsRef.current = merged;
+      setSettings(merged);
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : "Failed to save settings.",
+      );
     } finally {
       setIsSaving(false);
       if (pendingSaveRef.current) {
         void saveSettings();
       }
     }
-  }, [settings]);
+  }, [primaryStudentId]);
 
   const scheduleSave = useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -107,12 +172,16 @@ export function LessonPlannerProvider({
       } else {
         void saveSettings();
       }
-    }, 500);
+    }, 400);
   }, [isSaving, saveSettings]);
 
   const updateSettings = useCallback(
     (patch: Partial<LessonPlannerSettings>) => {
-      setSettings((current) => ({ ...current, ...patch, user_id: userId }));
+      setSettings((current) => {
+        const next = { ...current, ...patch, user_id: userId };
+        settingsRef.current = next;
+        return next;
+      });
       scheduleSave();
     },
     [scheduleSave, userId],
@@ -123,10 +192,11 @@ export function LessonPlannerProvider({
       settings,
       isLoading,
       isSaving,
+      saveError,
       updateSettings,
       saveSettings,
     }),
-    [settings, isLoading, isSaving, updateSettings, saveSettings],
+    [settings, isLoading, isSaving, saveError, updateSettings, saveSettings],
   );
 
   return (

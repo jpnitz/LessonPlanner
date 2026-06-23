@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ChatMessage, ProposedCurriculum } from "@/types/curriculum";
+import type { ProposedCurriculum } from "@/types/curriculum";
 import { useCurrentTopic } from "@/components/current-topic/current-topic-context";
 import { useLessonPlanner } from "@/components/lesson-planner/lesson-planner-context";
+import { useMenuChat } from "@/components/menu/menu-chat-context";
 import { useProposedCurriculum } from "@/components/proposed-curriculum/proposed-curriculum-context";
 import { useMainPane } from "@/components/main-pane/main-pane-context";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,10 @@ import { Button } from "@/components/ui/button";
 type AiChatWindowProps = {
   draft: string;
   onDraftChange: (value: string) => void;
-  onRegisterActions?: (actions: { createCurriculum: () => Promise<void> }) => void;
+  onRegisterActions?: (actions: {
+    createCurriculum: () => Promise<void>;
+    resetChat: () => void;
+  }) => void;
 };
 
 type ApiChatResponse = {
@@ -27,9 +31,15 @@ export function AiChatWindow({
 }: AiChatWindowProps) {
   const { currentTopic } = useCurrentTopic();
   const { settings } = useLessonPlanner();
+  const {
+    messages,
+    setMessages,
+    markStandardChat,
+    markCreateCurriculum,
+    resetChat,
+  } = useMenuChat();
   const { setProposedCurriculum } = useProposedCurriculum();
   const { openProposedCurriculum } = useMainPane();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [missingKeyHelp, setMissingKeyHelp] = useState<string | null>(null);
@@ -48,15 +58,13 @@ export function AiChatWindow({
     }
   }, [messages, isSending]);
 
-  useEffect(() => {
-    if (!currentTopic || messages.length > 0) return;
-    setMessages([
-      {
-        role: "assistant",
-        content: `Ready to help with "${currentTopic.standardTitle}" (${currentTopic.curriculumTitle}). Ask a question or use Test my knowledge.`,
-      },
-    ]);
-  }, [currentTopic, messages.length]);
+  const handleResetChat = useCallback(() => {
+    resetChat();
+    setPendingProposal(null);
+    setError(null);
+    setMissingKeyHelp(null);
+    onDraftChange("");
+  }, [resetChat, onDraftChange]);
 
   const sendChat = useCallback(
     async (mode: "chat" | "test_knowledge" | "create_curriculum") => {
@@ -76,6 +84,12 @@ export function AiChatWindow({
       if (mode !== "test_knowledge") {
         const userCount = nextMessages.filter((m) => m.role === "user").length;
         if (userCount === 0) return;
+      }
+
+      if (mode === "create_curriculum") {
+        markCreateCurriculum();
+      } else if (mode === "chat" || mode === "test_knowledge") {
+        markStandardChat();
       }
 
       setIsSending(true);
@@ -118,7 +132,8 @@ export function AiChatWindow({
 
         if (response.status === 422 && data.error === "missing_api_key") {
           setMissingKeyHelp(
-            "No LLM API key is saved for this student. Open Profile, edit the student, and add an OpenAI-compatible API key in the LLM API key field.",
+            data.message ??
+              "Add OPENAI_API_KEY to .env.local, or add a per-student key in Profile.",
           );
           if (trimmed) onDraftChange(trimmed);
           return;
@@ -128,7 +143,7 @@ export function AiChatWindow({
           throw new Error(data.error ?? data.message ?? "Chat request failed.");
         }
 
-        setMessages((current) => [
+        setMessages([
           ...outboundMessages,
           { role: "assistant", content: data.message ?? "" },
         ]);
@@ -150,14 +165,18 @@ export function AiChatWindow({
       currentTopic,
       settings.selected_student_ids,
       onDraftChange,
+      setMessages,
+      markCreateCurriculum,
+      markStandardChat,
     ],
   );
 
   useEffect(() => {
     onRegisterActions?.({
       createCurriculum: () => sendChat("create_curriculum"),
+      resetChat: handleResetChat,
     });
-  }, [onRegisterActions, sendChat]);
+  }, [onRegisterActions, sendChat, handleResetChat]);
 
   function handleConfirmProposal() {
     if (!pendingProposal) return;
@@ -166,20 +185,24 @@ export function AiChatWindow({
     openProposedCurriculum();
   }
 
+  const placeholder = currentTopic
+    ? `Discuss: ${currentTopic.standardTitle}`
+    : "Describe a topic, ask a question, or say what you want to learn…";
+
   return (
-    <section className="flex min-h-0 flex-1 flex-col rounded-lg border border-border bg-surface">
+    <section className="flex shrink-0 flex-col rounded-lg border border-border bg-surface">
       <div className="border-b border-border px-3 py-2">
         <h3 className="text-sm font-semibold text-foreground">AI chat</h3>
-        <p className="text-xs text-muted">
-          Describe what you want to learn or discuss. Keys stay on the server.
-        </p>
       </div>
 
-      <div ref={scrollRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+      <div
+        ref={scrollRef}
+        className="max-h-48 min-h-[6rem] space-y-2 overflow-y-auto p-3"
+      >
         {messages.length === 0 ? (
           <p className="text-sm text-muted">
             {currentTopic
-              ? `Topic loaded: ${currentTopic.standardTitle}`
+              ? `Selected standard: ${currentTopic.standardTitle}`
               : "Start a conversation or select a standard in Curriculum."}
           </p>
         ) : (
@@ -238,7 +261,7 @@ export function AiChatWindow({
           value={draft}
           onChange={(event) => onDraftChange(event.target.value)}
           rows={3}
-          placeholder="Describe a topic, ask a question, or say what you want to learn…"
+          placeholder={placeholder}
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
         />
         <div className="flex flex-wrap gap-2">

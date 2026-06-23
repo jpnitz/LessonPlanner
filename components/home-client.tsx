@@ -76,8 +76,15 @@ export function HomeClient({
   );
 
   if (isAuthenticated && profile && userId) {
+    const primaryStudentId =
+      students.find((s) => s.is_primary)?.id ?? students[0]?.id ?? null;
+
     return (
-      <LessonPlannerProvider userId={userId} initialSettings={initialSettings}>
+      <LessonPlannerProvider
+        userId={userId}
+        initialSettings={initialSettings}
+        primaryStudentId={primaryStudentId}
+      >
         <CurrentTopicProvider
           initialTopic={initialCurrentTopic}
           initialActiveStudentId={initialActiveStudentId}

@@ -4,7 +4,7 @@ import {
   buildProposedStandardsInstruction,
   callLlm,
   extractProposedCurriculum,
-  getStudentLlmApiKey,
+  resolveLlmApiKey,
   type LlmMessage,
 } from "@/lib/llm/client";
 import {
@@ -94,18 +94,20 @@ export async function POST(request: Request) {
   );
   if (!hasAccess) return jsonError("Student not accessible.", 403);
 
-  const apiKey = await getStudentLlmApiKey(activeStudentId);
-  if (!apiKey) {
+  const keyResult = await resolveLlmApiKey(activeStudentId);
+  if (!keyResult) {
     return NextResponse.json(
       {
         error: "missing_api_key",
         message:
-          "No LLM API key is saved for this student. Open Profile, edit the student, and add an OpenAI-compatible API key in the LLM API key field.",
+          "No LLM API key available. Add OPENAI_API_KEY to .env.local (server default), or open Profile → edit the student → LLM API key field.",
         studentId: activeStudentId,
       },
       { status: 422 },
     );
   }
+
+  const apiKey = keyResult.key;
 
   const incomingMessages = Array.isArray(body.messages) ? body.messages : [];
   const conversationMessages: LlmMessage[] = incomingMessages

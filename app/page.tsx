@@ -83,12 +83,17 @@ export default async function Home() {
       }
 
       const primaryStudent = students.find((student) => student.is_primary);
+      const primaryStudentId = primaryStudent?.id ?? students[0]?.id ?? null;
       if (primaryStudent) {
         showProfileIncompleteBanner = isProfileIncomplete(primaryStudent);
       }
 
       try {
-        initialSettings = await fetchLessonPlannerSettings(supabase, user.id);
+        initialSettings = await fetchLessonPlannerSettings(
+          supabase,
+          user.id,
+          primaryStudentId,
+        );
         const topicState = await fetchInitialCurrentTopic(
           supabase,
           students,

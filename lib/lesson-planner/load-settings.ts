@@ -6,6 +6,7 @@ import type { StudentSafe } from "@/types/profile";
 export async function fetchLessonPlannerSettings(
   supabase: SupabaseClient,
   userId: string,
+  primaryStudentId?: string | null,
 ): Promise<LessonPlannerSettings> {
   const { data } = await supabase
     .from("lesson_planner_settings")
@@ -19,7 +20,7 @@ export async function fetchLessonPlannerSettings(
       hours_per_week: null,
       hours_per_day: null,
       days_of_week: [],
-      selected_student_ids: [],
+      selected_student_ids: primaryStudentId ? [primaryStudentId] : [],
     };
   }
 
@@ -32,9 +33,13 @@ export async function fetchLessonPlannerSettings(
     days_of_week: Array.isArray(data.days_of_week)
       ? (data.days_of_week as number[])
       : [],
-    selected_student_ids: Array.isArray(data.selected_student_ids)
-      ? (data.selected_student_ids as string[])
-      : [],
+    selected_student_ids:
+      Array.isArray(data.selected_student_ids) &&
+      (data.selected_student_ids as string[]).length > 0
+        ? (data.selected_student_ids as string[])
+        : primaryStudentId
+          ? [primaryStudentId]
+          : [],
   };
 }
 
