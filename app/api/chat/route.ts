@@ -31,10 +31,13 @@ function buildSystemPrompt(options: {
   const parts = [
     "You are a helpful MicroSchool lesson-planning assistant for parents, teachers, and students.",
     "Be concise, encouraging, and age-appropriate.",
-    "If the user asks to reschedule calendar items, explain that scheduling will be available in a later phase and offer to help plan study time verbally instead.",
+    "Lesson scheduling is available from Curriculum or a proposed curriculum — generate lesson plans there to add them to the calendar.",
   ];
 
-  if (options.currentTopic?.standardTitle) {
+  if (
+    options.currentTopic?.standardTitle &&
+    options.mode !== "create_curriculum"
+  ) {
     parts.push(
       `The learner's current topic is "${options.currentTopic.standardTitle}" in ${options.currentTopic.curriculumTitle ?? "their curriculum"}${options.currentTopic.domainTitle ? ` (${options.currentTopic.domainTitle})` : ""}. Use this as the default subject unless the user changes it.`,
     );
@@ -48,7 +51,8 @@ function buildSystemPrompt(options: {
 
   if (options.mode === "create_curriculum") {
     parts.push(
-      "The user wants to create a new curriculum. Ask short questions to gauge prior knowledge, interests, and goals before proposing standards.",
+      "The user wants to create a new curriculum from their chat messages. Ignore any previously selected standard or topic — focus only on the new subject they describe.",
+      "Ask short questions to gauge prior knowledge, interests, and goals before proposing standards.",
       buildProposedStandardsInstruction(),
     );
   }

@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import type { StudentSafe } from "@/types/profile";
 import { LessonPlannerOptions } from "@/components/menu/lesson-planner-options";
 import { AiChatWindow } from "@/components/menu/ai-chat-window";
-import { MenuChatProvider } from "@/components/menu/menu-chat-context";
 
 type MenuPaneProps = {
   students: StudentSafe[];
@@ -33,8 +32,7 @@ export function MenuPane({ students }: MenuPaneProps) {
   }
 
   return (
-    <MenuChatProvider>
-      <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto pr-1">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto pr-1">
         <div className="shrink-0">
           <p className="text-base font-semibold text-foreground">Menu</p>
         </div>
@@ -55,6 +53,5 @@ export function MenuPane({ students }: MenuPaneProps) {
           isCreating={isCreating}
         />
       </div>
-    </MenuChatProvider>
   );
 }

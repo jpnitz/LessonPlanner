@@ -44,7 +44,7 @@ export async function fetchLessonPlannerSettings(
 }
 
 export async function fetchInitialCurrentTopic(
-  supabase: SupabaseClient,
+  _supabase: SupabaseClient,
   students: StudentSafe[],
   settings: LessonPlannerSettings,
 ): Promise<{ topic: CurrentTopic | null; activeStudentId: string | null }> {
@@ -52,43 +52,7 @@ export async function fetchInitialCurrentTopic(
     students,
     settings.selected_student_ids,
   );
-  if (!activeStudentId) return { topic: null, activeStudentId: null };
 
-  const { data: topicRow } = await supabase
-    .from("student_current_topics")
-    .select("standard_id")
-    .eq("student_id", activeStudentId)
-    .maybeSingle();
-
-  if (!topicRow?.standard_id) {
-    return { topic: null, activeStudentId };
-  }
-
-  const { data: standard } = await supabase
-    .from("learning_standards")
-    .select("id, title, domain_title, curriculum_id")
-    .eq("id", topicRow.standard_id)
-    .maybeSingle();
-
-  if (!standard) return { topic: null, activeStudentId };
-
-  const { data: curriculum } = await supabase
-    .from("curricula")
-    .select("id, title")
-    .eq("id", standard.curriculum_id)
-    .maybeSingle();
-
-  if (!curriculum) return { topic: null, activeStudentId };
-
-  return {
-    activeStudentId,
-    topic: {
-      standardId: standard.id,
-      standardTitle: standard.title,
-      domainTitle: standard.domain_title,
-      curriculumTitle: curriculum.title,
-      curriculumId: curriculum.id,
-      studentId: activeStudentId,
-    },
-  };
+  // Do not restore a persisted topic on page load — user selects explicitly.
+  return { topic: null, activeStudentId };
 }

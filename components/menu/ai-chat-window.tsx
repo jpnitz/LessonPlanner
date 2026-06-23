@@ -39,7 +39,8 @@ export function AiChatWindow({
     resetChat,
   } = useMenuChat();
   const { setProposedCurriculum } = useProposedCurriculum();
-  const { openProposedCurriculum } = useMainPane();
+  const { openChat } = useMainPane();
+  const { clearTopic } = useCurrentTopic();
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [missingKeyHelp, setMissingKeyHelp] = useState<string | null>(null);
@@ -61,10 +62,12 @@ export function AiChatWindow({
   const handleResetChat = useCallback(() => {
     resetChat();
     setPendingProposal(null);
+    setProposedCurriculum(null);
     setError(null);
     setMissingKeyHelp(null);
     onDraftChange("");
-  }, [resetChat, onDraftChange]);
+    void clearTopic();
+  }, [resetChat, onDraftChange, setProposedCurriculum, clearTopic]);
 
   const sendChat = useCallback(
     async (mode: "chat" | "test_knowledge" | "create_curriculum") => {
@@ -118,13 +121,14 @@ export function AiChatWindow({
             messages: outboundMessages,
             studentId:
               settings.selected_student_ids[0] ?? currentTopic?.studentId ?? null,
-            currentTopic: currentTopic
-              ? {
-                  standardTitle: currentTopic.standardTitle,
-                  domainTitle: currentTopic.domainTitle,
-                  curriculumTitle: currentTopic.curriculumTitle,
-                }
-              : undefined,
+            currentTopic:
+              mode !== "create_curriculum" && currentTopic
+                ? {
+                    standardTitle: currentTopic.standardTitle,
+                    domainTitle: currentTopic.domainTitle,
+                    curriculumTitle: currentTopic.curriculumTitle,
+                  }
+                : undefined,
           }),
         });
 
@@ -148,8 +152,11 @@ export function AiChatWindow({
           { role: "assistant", content: data.message ?? "" },
         ]);
 
+        openChat();
+
         if (data.proposedCurriculum) {
           setPendingProposal(data.proposedCurriculum);
+          setProposedCurriculum(data.proposedCurriculum);
         }
       } catch (sendError) {
         setError(
@@ -168,6 +175,8 @@ export function AiChatWindow({
       setMessages,
       markCreateCurriculum,
       markStandardChat,
+      openChat,
+      setProposedCurriculum,
     ],
   );
 
@@ -182,7 +191,7 @@ export function AiChatWindow({
     if (!pendingProposal) return;
     setProposedCurriculum(pendingProposal);
     setPendingProposal(null);
-    openProposedCurriculum();
+    openChat();
   }
 
   const placeholder = currentTopic
@@ -239,7 +248,7 @@ export function AiChatWindow({
             className="mt-2"
             onClick={handleConfirmProposal}
           >
-            Confirm and view in main pane
+            Confirm and review in main pane
           </Button>
         </div>
       ) : null}

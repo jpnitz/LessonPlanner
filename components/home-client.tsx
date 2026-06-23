@@ -14,6 +14,7 @@ import { GuestMainPane } from "@/components/guest-main-pane";
 import { AuthenticatedMainPane } from "@/components/main-pane/authenticated-main-pane";
 import { CurrentTopicProvider } from "@/components/current-topic/current-topic-context";
 import { LessonPlannerProvider } from "@/components/lesson-planner/lesson-planner-context";
+import { MenuChatProvider } from "@/components/menu/menu-chat-context";
 
 type HomeClientProps = {
   userId: string | null;
@@ -94,12 +95,14 @@ export function HomeClient({
         initialSettings={initialSettings}
         primaryStudentId={primaryStudentId}
       >
-        <CurrentTopicProvider
-          initialTopic={initialCurrentTopic}
-          initialActiveStudentId={initialActiveStudentId}
-        >
-          <div className="flex h-screen flex-col overflow-hidden">{shell}</div>
-        </CurrentTopicProvider>
+        <MenuChatProvider>
+          <CurrentTopicProvider
+            initialTopic={initialCurrentTopic}
+            initialActiveStudentId={initialActiveStudentId}
+          >
+            <div className="flex h-screen flex-col overflow-hidden">{shell}</div>
+          </CurrentTopicProvider>
+        </MenuChatProvider>
       </LessonPlannerProvider>
     );
   }

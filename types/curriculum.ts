@@ -56,7 +56,7 @@ export type ProposedStandardKsa = {
 export type ProposedStandard = {
   title: string;
   domain_title?: string;
-  ksas: ProposedStandardKsa[];
+  ksas?: ProposedStandardKsa[];
 };
 
 export type ProposedCurriculum = {

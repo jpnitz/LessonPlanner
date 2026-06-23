@@ -44,6 +44,7 @@ export function CalendarPane({
 }: CalendarPaneProps) {
   const { settings } = useLessonPlanner();
   const { openLesson } = useMainPane();
+  const [mounted, setMounted] = useState(false);
   const [viewMode, setViewMode] = useState<CalendarViewMode>("week");
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [events, setEvents] = useState(initialEvents);
@@ -100,6 +101,10 @@ export function CalendarPane({
     void refreshEvents();
   }, [refreshEvents]);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   function handleSelectEvent(event: CalendarEventDisplay) {
     if (event.event_type === "lesson") {
       openLesson(event);
@@ -144,6 +149,15 @@ export function CalendarPane({
       : viewMode === "week"
         ? formatWeekRange(range.start, range.end)
         : formatDayHeading(anchorDate);
+
+  if (!mounted) {
+    return (
+      <div className="space-y-3">
+        <p className="text-base font-semibold text-foreground">Calendar</p>
+        <p className="text-sm text-muted">Loading calendar…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">

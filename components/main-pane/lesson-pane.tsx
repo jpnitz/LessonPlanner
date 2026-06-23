@@ -1,7 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { CalendarEventDisplay } from "@/types/calendar";
-import { formatEventTime } from "@/lib/calendar/date-utils";
+import type { LessonActivity } from "@/types/lesson";
+import { ACTIVITY_TYPE_LABELS } from "@/types/lesson";
+import { formatEventTime, DATE_LOCALE } from "@/lib/calendar/date-utils";
 import { useMainPane } from "@/components/main-pane/main-pane-context";
 import { Button } from "@/components/ui/button";
 import { eventDisplayLabel } from "@/components/calendar/calendar-event-chip";
@@ -13,6 +16,43 @@ type LessonPaneProps = {
 export function LessonPane({ event }: LessonPaneProps) {
   const { openHome } = useMainPane();
   const title = eventDisplayLabel(event);
+  const [activities, setActivities] = useState<LessonActivity[]>([]);
+  const [activitiesError, setActivitiesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!event.lesson_id) {
+      setActivities([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadActivities() {
+      try {
+        const response = await fetch(`/api/lessons/${event.lesson_id}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data.error ?? "Could not load lesson activities.");
+        }
+        if (!cancelled) {
+          setActivities((data.activities ?? []) as LessonActivity[]);
+          setActivitiesError(null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setActivities([]);
+          setActivitiesError(
+            error instanceof Error ? error.message : "Could not load activities.",
+          );
+        }
+      }
+    }
+
+    void loadActivities();
+    return () => {
+      cancelled = true;
+    };
+  }, [event.lesson_id]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
@@ -43,7 +83,7 @@ export function LessonPane({ event }: LessonPaneProps) {
           <div>
             <dt className="text-xs font-medium uppercase text-muted">When</dt>
             <dd className="mt-1">
-              {new Date(event.starts_at).toLocaleString(undefined, {
+              {new Date(event.starts_at).toLocaleString(DATE_LOCALE, {
                 weekday: "short",
                 month: "short",
                 day: "numeric",
@@ -60,16 +100,58 @@ export function LessonPane({ event }: LessonPaneProps) {
         </dl>
       </div>
 
+      {activities.length > 0 ? (
+        <section className="rounded-lg border border-border bg-surface p-5">
+          <h3 className="text-sm font-semibold text-foreground">Activities</h3>
+          <ul className="mt-3 space-y-2">
+            {activities.map((activity) => (
+              <li
+                key={activity.id}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <span className="font-medium text-accent">
+                  {ACTIVITY_TYPE_LABELS[activity.activity_type]}:
+                </span>{" "}
+                {activity.title}
+                {activity.duration_minutes ? (
+                  <span className="text-xs text-muted">
+                    {" "}
+                    · {activity.duration_minutes} min
+                  </span>
+                ) : null}
+                {activity.description ? (
+                  <p className="mt-1 text-xs text-muted">{activity.description}</p>
+                ) : null}
+                {activity.resources?.url ? (
+                  <p className="mt-1 text-xs">
+                    <a
+                      href={activity.resources.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-accent hover:text-accent-hover"
+                    >
+                      Open resource
+                    </a>
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {activitiesError ? (
+        <p className="text-xs text-muted">{activitiesError}</p>
+      ) : null}
+
       <article className="rounded-lg border border-border bg-surface p-5">
-        <h3 className="text-sm font-semibold text-foreground">Lesson content</h3>
+        <h3 className="text-sm font-semibold text-foreground">Lesson overview</h3>
         {event.lesson_content ? (
           <div className="prose prose-sm mt-3 max-w-none whitespace-pre-wrap text-sm leading-7 text-foreground">
             {event.lesson_content}
           </div>
         ) : (
-          <p className="mt-3 text-sm text-muted">
-            No lesson content yet. Phase 6 will generate full lesson plans from KSAs.
-          </p>
+          <p className="mt-3 text-sm text-muted">No lesson overview available.</p>
         )}
       </article>
     </div>

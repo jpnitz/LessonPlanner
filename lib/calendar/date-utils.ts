@@ -1,5 +1,7 @@
 import type { CalendarViewMode } from "@/types/calendar";
 
+export const DATE_LOCALE = "en-US";
+
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 export function startOfDay(date: Date) {
@@ -53,11 +55,11 @@ export function isSameDay(a: Date, b: Date) {
 }
 
 export function formatMonthYear(date: Date) {
-  return date.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  return date.toLocaleDateString(DATE_LOCALE, { month: "long", year: "numeric" });
 }
 
 export function formatDayHeading(date: Date) {
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString(DATE_LOCALE, {
     weekday: "long",
     month: "short",
     day: "numeric",
@@ -66,11 +68,11 @@ export function formatDayHeading(date: Date) {
 
 export function formatWeekRange(start: Date, end: Date) {
   const sameMonth = start.getMonth() === end.getMonth();
-  const startLabel = start.toLocaleDateString(undefined, {
+  const startLabel = start.toLocaleDateString(DATE_LOCALE, {
     month: "short",
     day: "numeric",
   });
-  const endLabel = end.toLocaleDateString(undefined, {
+  const endLabel = end.toLocaleDateString(DATE_LOCALE, {
     month: sameMonth ? undefined : "short",
     day: "numeric",
     year: start.getFullYear() === end.getFullYear() ? undefined : "numeric",
@@ -82,11 +84,11 @@ export function formatEventTime(startsAt: string, endsAt: string, isAllDay: bool
   if (isAllDay) return "All day";
   const start = new Date(startsAt);
   const end = new Date(endsAt);
-  const startLabel = start.toLocaleTimeString(undefined, {
+  const startLabel = start.toLocaleTimeString(DATE_LOCALE, {
     hour: "numeric",
     minute: "2-digit",
   });
-  const endLabel = end.toLocaleTimeString(undefined, {
+  const endLabel = end.toLocaleTimeString(DATE_LOCALE, {
     hour: "numeric",
     minute: "2-digit",
   });
