@@ -11,8 +11,8 @@ export function CurriculumList({ curricula, onSelect }: CurriculumListProps) {
   if (curricula.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-surface p-4 text-sm text-muted">
-        No curricula found. Run the Phase 3 SQL migration in Supabase, then
-        refresh this page.
+        No curricula found. Run migrations 003 and 004 in Supabase, then refresh
+        this page.
       </div>
     );
   }

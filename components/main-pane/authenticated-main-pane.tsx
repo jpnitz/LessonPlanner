@@ -4,6 +4,7 @@ import type { CurriculumDetail, CurriculumSummary } from "@/types/curriculum";
 import type { Profile, StudentSafe } from "@/types/profile";
 import { useMainPane } from "@/components/main-pane/main-pane-context";
 import { CurriculumPane } from "@/components/curriculum/curriculum-pane";
+import { ProposedCurriculumPane } from "@/components/proposed-curriculum/proposed-curriculum-pane";
 import { ProfilePane } from "@/components/profile/profile-pane";
 import { CompleteProfileBanner } from "@/components/profile/complete-profile-banner";
 
@@ -28,11 +29,16 @@ export function AuthenticatedMainPane({
 }: AuthenticatedMainPaneProps) {
   const { view } = useMainPane();
 
+  if (view === "proposed-curriculum") {
+    return <ProposedCurriculumPane />;
+  }
+
   if (view === "curriculum") {
     return (
       <CurriculumPane
         curricula={curricula}
         curriculumDetails={curriculumDetails}
+        students={students}
       />
     );
   }
@@ -63,8 +69,8 @@ export function AuthenticatedMainPane({
           <p className="font-medium">How to use the app shell</p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
             <li>
-              <strong className="text-foreground">Menu</strong> (left): drag the
-              divider to resize, or click the arrow to collapse.
+              <strong className="text-foreground">Menu</strong> (left): lesson
+              planner options and AI chat.
             </li>
             <li>
               <strong className="text-foreground">Calendar</strong> (top right):

@@ -1,9 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   CurriculumDetail,
-  CurriculumSection,
+  CurriculumDomain,
   CurriculumSummary,
   LearningStandard,
+  StandardKsa,
+  StudentCurriculumAssignment,
 } from "@/types/curriculum";
 
 type CurriculumRow = {
@@ -14,31 +16,70 @@ type CurriculumRow = {
   sort_order: number;
 };
 
-type SectionRow = {
+type StandardRow = {
   id: string;
   curriculum_id: string;
+  domain_title: string | null;
   title: string;
   sort_order: number;
 };
 
-type StandardRow = {
+type KsaRow = {
   id: string;
-  section_id: string;
+  standard_id: string;
+  ksa_type: StandardKsa["ksa_type"];
   title: string;
+  description: string | null;
   sort_order: number;
 };
 
 export async function fetchCurricula(
   supabase: SupabaseClient,
+  options?: { curriculumIds?: string[] },
 ): Promise<CurriculumSummary[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("curricula")
     .select("id, slug, title, description, sort_order")
     .order("sort_order", { ascending: true })
     .order("title", { ascending: true });
 
+  if (options?.curriculumIds?.length) {
+    query = query.in("id", options.curriculumIds);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as CurriculumSummary[];
+}
+
+export async function fetchStudentCurriculumIds(
+  supabase: SupabaseClient,
+  studentIds: string[],
+): Promise<string[]> {
+  if (studentIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("student_curricula")
+    .select("curriculum_id")
+    .in("student_id", studentIds);
+
+  if (error) throw error;
+  return [...new Set((data ?? []).map((row) => row.curriculum_id as string))];
+}
+
+export async function fetchStudentCurriculumAssignments(
+  supabase: SupabaseClient,
+  studentIds: string[],
+): Promise<StudentCurriculumAssignment[]> {
+  if (studentIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("student_curricula")
+    .select("student_id, curriculum_id")
+    .in("student_id", studentIds);
+
+  if (error) throw error;
+  return (data ?? []) as StudentCurriculumAssignment[];
 }
 
 export async function fetchCurriculumDetail(
@@ -54,45 +95,63 @@ export async function fetchCurriculumDetail(
   if (curriculumError) throw curriculumError;
   if (!curriculum) return null;
 
-  const { data: sections, error: sectionsError } = await supabase
-    .from("curriculum_sections")
-    .select("id, curriculum_id, title, sort_order")
+  const { data: standards, error: standardsError } = await supabase
+    .from("learning_standards")
+    .select("id, curriculum_id, domain_title, title, sort_order")
     .eq("curriculum_id", curriculumId)
     .order("sort_order", { ascending: true })
     .order("title", { ascending: true });
 
-  if (sectionsError) throw sectionsError;
+  if (standardsError) throw standardsError;
 
-  const sectionRows = (sections ?? []) as SectionRow[];
-  const sectionIds = sectionRows.map((section) => section.id);
+  const standardRows = (standards ?? []) as StandardRow[];
+  const standardIds = standardRows.map((standard) => standard.id);
 
-  let standardRows: StandardRow[] = [];
-  if (sectionIds.length > 0) {
-    const { data: standards, error: standardsError } = await supabase
-      .from("learning_standards")
-      .select("id, section_id, title, sort_order")
-      .in("section_id", sectionIds)
-      .order("sort_order", { ascending: true })
-      .order("title", { ascending: true });
+  let ksaRows: KsaRow[] = [];
+  if (standardIds.length > 0) {
+    const { data: ksas, error: ksasError } = await supabase
+      .from("standard_ksas")
+      .select("id, standard_id, ksa_type, title, description, sort_order")
+      .in("standard_id", standardIds)
+      .order("sort_order", { ascending: true });
 
-    if (standardsError) throw standardsError;
-    standardRows = (standards ?? []) as StandardRow[];
+    if (ksasError) throw ksasError;
+    ksaRows = (ksas ?? []) as KsaRow[];
   }
 
-  const standardsBySection = new Map<string, LearningStandard[]>();
-  for (const standard of standardRows) {
-    const list = standardsBySection.get(standard.section_id) ?? [];
-    list.push(standard);
-    standardsBySection.set(standard.section_id, list);
+  const ksasByStandard = new Map<string, StandardKsa[]>();
+  for (const ksa of ksaRows) {
+    const list = ksasByStandard.get(ksa.standard_id) ?? [];
+    list.push(ksa);
+    ksasByStandard.set(ksa.standard_id, list);
   }
 
-  const detailSections: CurriculumSection[] = sectionRows.map((section) => ({
-    ...section,
-    learning_standards: standardsBySection.get(section.id) ?? [],
+  const standardsWithKsa: LearningStandard[] = standardRows.map((standard) => ({
+    ...standard,
+    ksas: ksasByStandard.get(standard.id) ?? [],
   }));
+
+  const domainMap = new Map<string, CurriculumDomain>();
+  for (const standard of standardsWithKsa) {
+    const domainTitle = standard.domain_title ?? "General";
+    const existing = domainMap.get(domainTitle);
+    if (existing) {
+      existing.learning_standards.push(standard);
+    } else {
+      domainMap.set(domainTitle, {
+        title: domainTitle,
+        sort_order: standard.sort_order,
+        learning_standards: [standard],
+      });
+    }
+  }
+
+  const domains = [...domainMap.values()].sort(
+    (a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title),
+  );
 
   return {
     ...(curriculum as CurriculumRow),
-    sections: detailSections,
+    domains,
   };
 }

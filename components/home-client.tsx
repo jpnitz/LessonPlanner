@@ -1,13 +1,21 @@
 "use client";
 
-import type { CurriculumDetail, CurriculumSummary } from "@/types/curriculum";
+import type {
+  CurrentTopic,
+  CurriculumDetail,
+  CurriculumSummary,
+  LessonPlannerSettings,
+} from "@/types/curriculum";
 import type { Profile, StudentSafe } from "@/types/profile";
 import { SiteHeader } from "@/components/layout/site-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { GuestMainPane } from "@/components/guest-main-pane";
 import { AuthenticatedMainPane } from "@/components/main-pane/authenticated-main-pane";
+import { CurrentTopicProvider } from "@/components/current-topic/current-topic-context";
+import { LessonPlannerProvider } from "@/components/lesson-planner/lesson-planner-context";
 
 type HomeClientProps = {
+  userId: string | null;
   userName: string | null;
   userEmail: string | null;
   isAuthenticated: boolean;
@@ -17,9 +25,13 @@ type HomeClientProps = {
   showProfileIncompleteBanner: boolean;
   curricula: CurriculumSummary[];
   curriculumDetails: CurriculumDetail[];
+  initialSettings: LessonPlannerSettings | null;
+  initialCurrentTopic: CurrentTopic | null;
+  initialActiveStudentId: string | null;
 };
 
 export function HomeClient({
+  userId,
   userName,
   userEmail,
   isAuthenticated,
@@ -29,15 +41,18 @@ export function HomeClient({
   showProfileIncompleteBanner,
   curricula,
   curriculumDetails,
+  initialSettings,
+  initialCurrentTopic,
+  initialActiveStudentId,
 }: HomeClientProps) {
-  return (
-    <div className="flex h-screen flex-col overflow-hidden">
+  const shell = (
+    <>
       <SiteHeader
         userName={userName}
         userEmail={userEmail}
         showProfileLink={isAuthenticated}
       />
-      <AppShell showIntro={false}>
+      <AppShell showIntro={false} menuStudents={isAuthenticated ? students : []}>
         {isAuthenticated && profile ? (
           <AuthenticatedMainPane
             profile={profile}
@@ -57,6 +72,21 @@ export function HomeClient({
           <GuestMainPane />
         )}
       </AppShell>
-    </div>
+    </>
   );
+
+  if (isAuthenticated && profile && userId) {
+    return (
+      <LessonPlannerProvider userId={userId} initialSettings={initialSettings}>
+        <CurrentTopicProvider
+          initialTopic={initialCurrentTopic}
+          initialActiveStudentId={initialActiveStudentId}
+        >
+          <div className="flex h-screen flex-col overflow-hidden">{shell}</div>
+        </CurrentTopicProvider>
+      </LessonPlannerProvider>
+    );
+  }
+
+  return <div className="flex h-screen flex-col overflow-hidden">{shell}</div>;
 }

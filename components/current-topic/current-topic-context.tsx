@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -12,26 +13,75 @@ import type { CurrentTopic } from "@/types/curriculum";
 
 type CurrentTopicContextValue = {
   currentTopic: CurrentTopic | null;
-  selectTopic: (topic: CurrentTopic) => void;
-  clearTopic: () => void;
+  activeStudentId: string | null;
+  setActiveStudentId: (studentId: string | null) => void;
+  selectTopic: (topic: CurrentTopic) => Promise<void>;
+  clearTopic: () => Promise<void>;
 };
 
 const CurrentTopicContext = createContext<CurrentTopicContextValue | null>(null);
 
-export function CurrentTopicProvider({ children }: { children: ReactNode }) {
-  const [currentTopic, setCurrentTopic] = useState<CurrentTopic | null>(null);
+type CurrentTopicProviderProps = {
+  children: ReactNode;
+  initialTopic?: CurrentTopic | null;
+  initialActiveStudentId?: string | null;
+};
 
-  const selectTopic = useCallback((topic: CurrentTopic) => {
+export function CurrentTopicProvider({
+  children,
+  initialTopic = null,
+  initialActiveStudentId = null,
+}: CurrentTopicProviderProps) {
+  const [currentTopic, setCurrentTopic] = useState<CurrentTopic | null>(
+    initialTopic,
+  );
+  const [activeStudentId, setActiveStudentId] = useState<string | null>(
+    initialActiveStudentId,
+  );
+
+  useEffect(() => {
+    setCurrentTopic(initialTopic ?? null);
+  }, [initialTopic]);
+
+  useEffect(() => {
+    setActiveStudentId(initialActiveStudentId ?? null);
+  }, [initialActiveStudentId]);
+
+  const selectTopic = useCallback(async (topic: CurrentTopic) => {
     setCurrentTopic(topic);
+    setActiveStudentId(topic.studentId);
+
+    await fetch("/api/current-topic", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        student_id: topic.studentId,
+        standard_id: topic.standardId,
+      }),
+    });
   }, []);
 
-  const clearTopic = useCallback(() => {
+  const clearTopic = useCallback(async () => {
+    const studentId = activeStudentId;
     setCurrentTopic(null);
-  }, []);
+    if (!studentId) return;
+
+    await fetch("/api/current-topic", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ student_id: studentId }),
+    });
+  }, [activeStudentId]);
 
   const value = useMemo(
-    () => ({ currentTopic, selectTopic, clearTopic }),
-    [currentTopic, selectTopic, clearTopic],
+    () => ({
+      currentTopic,
+      activeStudentId,
+      setActiveStudentId,
+      selectTopic,
+      clearTopic,
+    }),
+    [currentTopic, activeStudentId, selectTopic, clearTopic],
   );
 
   return (
