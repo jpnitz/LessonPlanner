@@ -117,6 +117,37 @@ When you see `Local: http://localhost:3000`:
 
 **To stop the server:** press **Ctrl+C** in the terminal (Mac: **Cmd+C**).
 
+### `.env.local` looks greyed out in Cursor?
+
+That is normal — the file is gitignored for security. Next.js still reads it at runtime (you should see `Environments: .env.local` when the dev server starts).
+
+If you cannot save in the editor, edit from the terminal:
+
+```bash
+nano .env.local
+```
+
+Required keys:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+SUPABASE_SECRET_KEY=sb_secret_...
+OPENAI_API_KEY=sk-...
+```
+
+Restart after any change: **Ctrl+C**, then `npm run dev`.
+
+### Dev won't open / `ERR_CONNECTION_REFUSED` / "Another next dev server is already running"
+
+A stuck process often blocks port 3000. In the workspace terminal:
+
+```bash
+npm run dev:clean
+```
+
+Then open the app via **Cursor → Ports → 3000 → Open in Browser** (do not rely on an external browser unless port forwarding is active).
+
 ---
 
 ## What you should see

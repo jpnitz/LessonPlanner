@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:clean": "pkill -f 'next dev' 2>/dev/null; pkill -f 'next-server' 2>/dev/null; rm -f .next/dev/lock; next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
