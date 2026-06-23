@@ -9,6 +9,8 @@ import {
   type ReactNode,
 } from "react";
 import { MenuPane } from "@/components/menu/menu-pane";
+import { CalendarPane } from "@/components/calendar/calendar-pane";
+import type { CalendarEventDisplay } from "@/types/calendar";
 import type { StudentSafe } from "@/types/profile";
 
 const MIN_MENU_WIDTH = 220;
@@ -19,6 +21,9 @@ type AppShellProps = {
   children?: ReactNode;
   showIntro?: boolean;
   menuStudents?: StudentSafe[];
+  calendarStudents?: StudentSafe[];
+  initialCalendarEvents?: CalendarEventDisplay[];
+  isStudentAccount?: boolean;
 };
 
 function PaneToggle({
@@ -63,6 +68,9 @@ export function AppShell({
   children,
   showIntro = true,
   menuStudents = [],
+  calendarStudents = [],
+  initialCalendarEvents = [],
+  isStudentAccount = false,
 }: AppShellProps) {
   const [menuCollapsed, setMenuCollapsed] = useState(false);
   const [calendarCollapsed, setCalendarCollapsed] = useState(false);
@@ -166,11 +174,21 @@ export function AppShell({
             edge="top"
           />
           {!calendarCollapsed ? (
-            <div className="max-h-[28vh] overflow-y-auto border-t border-border p-4">
-              <p className="text-base font-semibold text-foreground">Calendar</p>
-              <p className="mt-2 text-sm text-muted">
-                Your schedule will appear here in a later phase.
-              </p>
+            <div className="max-h-[40vh] overflow-y-auto border-t border-border p-4">
+              {calendarStudents.length > 0 ? (
+                <CalendarPane
+                  students={calendarStudents}
+                  initialEvents={initialCalendarEvents}
+                  isStudentAccount={isStudentAccount}
+                />
+              ) : (
+                <>
+                  <p className="text-base font-semibold text-foreground">Calendar</p>
+                  <p className="mt-2 text-sm text-muted">
+                    Sign in to view and manage your schedule.
+                  </p>
+                </>
+              )}
             </div>
           ) : null}
         </section>

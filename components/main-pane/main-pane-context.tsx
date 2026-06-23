@@ -8,14 +8,22 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { CalendarEventDisplay } from "@/types/calendar";
 
-export type MainPaneView = "home" | "profile" | "curriculum" | "proposed-curriculum";
+export type MainPaneView =
+  | "home"
+  | "profile"
+  | "curriculum"
+  | "proposed-curriculum"
+  | "lesson";
 
 type MainPaneContextValue = {
   view: MainPaneView;
+  selectedLessonEvent: CalendarEventDisplay | null;
   openProfile: () => void;
   openCurriculum: () => void;
   openProposedCurriculum: () => void;
+  openLesson: (event: CalendarEventDisplay) => void;
   openHome: () => void;
 };
 
@@ -23,6 +31,8 @@ const MainPaneContext = createContext<MainPaneContextValue | null>(null);
 
 export function MainPaneProvider({ children }: { children: ReactNode }) {
   const [view, setView] = useState<MainPaneView>("home");
+  const [selectedLessonEvent, setSelectedLessonEvent] =
+    useState<CalendarEventDisplay | null>(null);
 
   const openProfile = useCallback(() => setView("profile"), []);
   const openCurriculum = useCallback(() => setView("curriculum"), []);
@@ -30,17 +40,34 @@ export function MainPaneProvider({ children }: { children: ReactNode }) {
     () => setView("proposed-curriculum"),
     [],
   );
-  const openHome = useCallback(() => setView("home"), []);
+  const openLesson = useCallback((event: CalendarEventDisplay) => {
+    setSelectedLessonEvent(event);
+    setView("lesson");
+  }, []);
+  const openHome = useCallback(() => {
+    setSelectedLessonEvent(null);
+    setView("home");
+  }, []);
 
   const value = useMemo(
     () => ({
       view,
+      selectedLessonEvent,
       openProfile,
       openCurriculum,
       openProposedCurriculum,
+      openLesson,
       openHome,
     }),
-    [view, openProfile, openCurriculum, openProposedCurriculum, openHome],
+    [
+      view,
+      selectedLessonEvent,
+      openProfile,
+      openCurriculum,
+      openProposedCurriculum,
+      openLesson,
+      openHome,
+    ],
   );
 
   return (
