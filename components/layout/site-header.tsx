@@ -3,16 +3,23 @@
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthModal } from "@/components/auth/auth-modal-context";
+import { useMainPane } from "@/components/main-pane/main-pane-context";
 import { Button } from "@/components/ui/button";
 
 type SiteHeaderProps = {
   userName?: string | null;
   userEmail?: string | null;
+  showProfileLink?: boolean;
 };
 
-export function SiteHeader({ userName, userEmail }: SiteHeaderProps) {
+export function SiteHeader({
+  userName,
+  userEmail,
+  showProfileLink = false,
+}: SiteHeaderProps) {
   const router = useRouter();
   const { openAuth } = useAuthModal();
+  const { openProfile } = useMainPane();
 
   async function handleSignOut() {
     try {
@@ -38,6 +45,15 @@ export function SiteHeader({ userName, userEmail }: SiteHeaderProps) {
 
       {userEmail ? (
         <div className="flex items-center gap-3">
+          {showProfileLink ? (
+            <button
+              type="button"
+              onClick={openProfile}
+              className="text-sm font-medium text-accent hover:text-accent-hover"
+            >
+              Profile
+            </button>
+          ) : null}
           <p className="hidden text-sm text-muted sm:block">
             {userName ? `${userName} · ` : ""}
             {userEmail}

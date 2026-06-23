@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuthModal } from "@/components/auth/auth-modal-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { resolveStudentLoginEmail } from "@/lib/profile/student-auth";
 
 export function AuthModal() {
   const router = useRouter();
@@ -13,6 +14,8 @@ export function AuthModal() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loginRole, setLoginRole] = useState<"parent" | "student">("parent");
+  const [studentLogin, setStudentLogin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -21,6 +24,8 @@ export function AuthModal() {
     setName("");
     setEmail("");
     setPassword("");
+    setLoginRole("parent");
+    setStudentLogin("");
     setError(null);
     setMessage(null);
     setLoading(false);
@@ -94,7 +99,10 @@ export function AuthModal() {
     }
 
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
+      email:
+        loginRole === "student"
+          ? resolveStudentLoginEmail(studentLogin)
+          : email,
       password,
     });
 
@@ -197,17 +205,53 @@ export function AuthModal() {
               required
               autoComplete="name"
             />
-          ) : null}
+          ) : (
+            <div className="flex rounded-md border border-border bg-surface-muted p-1">
+              <button
+                type="button"
+                className={`flex-1 rounded-sm px-3 py-1.5 text-sm font-medium ${
+                  loginRole === "parent"
+                    ? "bg-surface text-foreground shadow-sm"
+                    : "text-muted"
+                }`}
+                onClick={() => setLoginRole("parent")}
+              >
+                Parent / teacher
+              </button>
+              <button
+                type="button"
+                className={`flex-1 rounded-sm px-3 py-1.5 text-sm font-medium ${
+                  loginRole === "student"
+                    ? "bg-surface text-foreground shadow-sm"
+                    : "text-muted"
+                }`}
+                onClick={() => setLoginRole("student")}
+              >
+                Student
+              </button>
+            </div>
+          )}
 
-          <Input
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="you@example.com"
-            required
-            autoComplete="email"
-          />
+          {mode === "login" && loginRole === "student" ? (
+            <Input
+              label="Login ID or email"
+              value={studentLogin}
+              onChange={(event) => setStudentLogin(event.target.value)}
+              placeholder="jamie.smith or student@example.com"
+              required
+              autoComplete="username"
+            />
+          ) : (
+            <Input
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@example.com"
+              required
+              autoComplete="email"
+            />
+          )}
 
           <Input
             label="Password"
