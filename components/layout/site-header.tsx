@@ -15,9 +15,13 @@ export function SiteHeader({ userName, userEmail }: SiteHeaderProps) {
   const { openAuth } = useAuthModal();
 
   async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.refresh();
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.refresh();
+    } catch {
+      router.refresh();
+    }
   }
 
   return (

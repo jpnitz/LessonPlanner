@@ -11,10 +11,11 @@ import {
 
 const MIN_MENU_WIDTH = 220;
 const MAX_MENU_WIDTH = 520;
-const COLLAPSED_WIDTH = 44;
+const COLLAPSED_WIDTH = 48;
 
 type AppShellProps = {
   children?: ReactNode;
+  showIntro?: boolean;
 };
 
 function PaneToggle({
@@ -32,28 +33,30 @@ function PaneToggle({
     <button
       type="button"
       onClick={onToggle}
-      className={`flex items-center justify-center border-border bg-surface-muted text-muted transition-colors hover:bg-surface hover:text-foreground ${
+      className={`flex shrink-0 items-center gap-2 border-border bg-surface-muted text-foreground transition-colors hover:bg-accent-soft ${
         edge === "left"
-          ? "h-full w-9 shrink-0 border-r"
-          : "h-9 w-full shrink-0 border-b"
+          ? "h-full w-10 flex-col justify-center border-r px-1"
+          : "h-10 w-full border-b px-3"
       }`}
       aria-expanded={!collapsed}
       aria-label={collapsed ? `Expand ${label}` : `Collapse ${label}`}
       title={collapsed ? `Expand ${label}` : `Collapse ${label}`}
     >
-      <span className="text-xs font-medium">
+      <span className="text-base font-bold leading-none text-accent">
         {edge === "left" ? (collapsed ? "›" : "‹") : collapsed ? "▼" : "▲"}
       </span>
-      {!collapsed ? (
-        <span className={`text-xs font-semibold ${edge === "left" ? "ml-1 -rotate-90" : "ml-2"}`}>
-          {label}
-        </span>
-      ) : null}
+      <span
+        className={`text-xs font-semibold uppercase tracking-wide text-muted ${
+          edge === "left" ? "writing-mode-vertical [writing-mode:vertical-rl]" : ""
+        }`}
+      >
+        {label}
+      </span>
     </button>
   );
 }
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, showIntro = true }: AppShellProps) {
   const [menuCollapsed, setMenuCollapsed] = useState(false);
   const [calendarCollapsed, setCalendarCollapsed] = useState(false);
   const [menuWidth, setMenuWidth] = useState(320);
@@ -108,9 +111,9 @@ export function AppShell({ children }: AppShellProps) {
   const effectiveMenuWidth = menuCollapsed ? COLLAPSED_WIDTH : menuWidth;
 
   return (
-    <div ref={shellRef} className="flex min-h-0 flex-1 overflow-hidden">
+    <div ref={shellRef} className="flex min-h-0 flex-1 overflow-hidden bg-background">
       <aside
-        className="flex shrink-0 flex-col border-r border-border bg-surface"
+        className="flex shrink-0 flex-col border-r-2 border-border-strong bg-surface shadow-sm"
         style={{ width: effectiveMenuWidth }}
       >
         <div className="flex min-h-0 flex-1">
@@ -122,7 +125,7 @@ export function AppShell({ children }: AppShellProps) {
           />
           {!menuCollapsed ? (
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              <p className="text-sm font-semibold text-foreground">Menu</p>
+              <p className="text-base font-semibold text-foreground">Menu</p>
               <p className="mt-2 text-sm text-muted">
                 Navigation and student tools will appear here in later phases.
               </p>
@@ -133,18 +136,19 @@ export function AppShell({ children }: AppShellProps) {
 
       {!menuCollapsed ? (
         <div
-          className="w-1 shrink-0 cursor-col-resize bg-border hover:bg-accent/40"
+          className="w-1.5 shrink-0 cursor-col-resize bg-border-strong hover:bg-accent"
           onPointerDown={onResizePointerDown}
           onPointerMove={onResizePointerMove}
           onPointerUp={onResizePointerUp}
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize menu pane"
+          title="Drag to resize menu"
         />
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <section className="flex shrink-0 flex-col border-b border-border bg-surface">
+        <section className="flex shrink-0 flex-col border-b-2 border-border-strong bg-surface shadow-sm">
           <PaneToggle
             label="Calendar"
             collapsed={calendarCollapsed}
@@ -152,8 +156,8 @@ export function AppShell({ children }: AppShellProps) {
             edge="top"
           />
           {!calendarCollapsed ? (
-            <div className="overflow-y-auto p-4" style={{ maxHeight: "28vh" }}>
-              <p className="text-sm font-semibold text-foreground">Calendar</p>
+            <div className="max-h-[28vh] overflow-y-auto border-t border-border p-4">
+              <p className="text-base font-semibold text-foreground">Calendar</p>
               <p className="mt-2 text-sm text-muted">
                 Your schedule will appear here in a later phase.
               </p>
@@ -162,35 +166,35 @@ export function AppShell({ children }: AppShellProps) {
         </section>
 
         <main className="min-h-0 flex-1 overflow-y-auto bg-background p-6 md:p-8">
-          {children ?? (
+          {children}
+          {showIntro ? (
             <div className="mx-auto max-w-2xl space-y-4">
-              <h1 className="text-2xl font-semibold text-foreground">
+              <h2 className="text-2xl font-semibold text-foreground">
                 Welcome to MicroSchool Lesson Planner
-              </h1>
+              </h2>
               <p className="text-sm leading-7 text-muted">
                 MicroSchool helps parents and teachers plan personalized lessons
-                for each student. Use the layout around this page to navigate once
-                features are added.
+                for each student.
               </p>
               <div className="rounded-lg border border-border bg-surface p-4 text-sm leading-7 text-foreground">
                 <p className="font-medium">How to use the app shell</p>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
                   <li>
-                    <strong className="text-foreground">Menu</strong> (left): drag
-                    the divider to resize, or click the arrow to collapse it.
+                    <strong className="text-foreground">Menu</strong> (left):
+                    drag the divider to resize, or click the arrow to collapse.
                   </li>
                   <li>
                     <strong className="text-foreground">Calendar</strong> (top
-                    right): click the bar to show or hide the calendar pane.
+                    right): click the bar to show or hide.
                   </li>
                   <li>
-                    <strong className="text-foreground">Main pane</strong> (this
-                    area): lesson content and tools will open here.
+                    <strong className="text-foreground">Main pane</strong>{" "}
+                    (here): lesson content and tools will open here.
                   </li>
                 </ul>
               </div>
             </div>
-          )}
+          ) : null}
         </main>
       </div>
     </div>

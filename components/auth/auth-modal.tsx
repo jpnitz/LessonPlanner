@@ -50,7 +50,18 @@ export function AuthModal() {
     setMessage(null);
     setLoading(true);
 
-    const supabase = createClient();
+    let supabase;
+    try {
+      supabase = createClient();
+    } catch (configError) {
+      setError(
+        configError instanceof Error
+          ? configError.message
+          : "Supabase is not configured.",
+      );
+      setLoading(false);
+      return;
+    }
 
     if (mode === "signup") {
       const { data, error: signUpError } = await supabase.auth.signUp({
