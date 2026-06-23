@@ -1,23 +1,33 @@
-import { testSupabaseConnection } from "@/lib/supabase/test-connection";
+import { createClient } from "@/lib/supabase/server";
+import { HomeClient } from "@/components/home-client";
 
 export default async function Home() {
-  const connection = await testSupabaseConnection();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let userName: string | null = null;
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    userName =
+      profile?.full_name ??
+      (typeof user.user_metadata?.full_name === "string"
+        ? user.user_metadata.full_name
+        : null);
+  }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-white">
-      <div className="text-center">
-        <h1 className="text-2xl font-semibold text-zinc-900">
-          MicroSchool Lesson Planner
-        </h1>
-        <p
-          className={`mt-4 text-sm ${
-            connection.ok ? "text-green-700" : "text-red-700"
-          }`}
-        >
-          Supabase: {connection.ok ? "Connected" : "Not connected"} —{" "}
-          {connection.message}
-        </p>
-      </div>
-    </main>
+    <HomeClient
+      isAuthenticated={Boolean(user)}
+      userEmail={user?.email ?? null}
+      userName={userName}
+    />
   );
 }
