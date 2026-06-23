@@ -6,6 +6,7 @@ import type {
   CurriculumSummary,
   LessonPlannerSettings,
 } from "@/types/curriculum";
+import type { CalendarEventDisplay } from "@/types/calendar";
 import type { Profile, StudentSafe } from "@/types/profile";
 import { SiteHeader } from "@/components/layout/site-header";
 import { AppShell } from "@/components/layout/app-shell";
@@ -28,6 +29,7 @@ type HomeClientProps = {
   initialSettings: LessonPlannerSettings | null;
   initialCurrentTopic: CurrentTopic | null;
   initialActiveStudentId: string | null;
+  initialCalendarEvents: CalendarEventDisplay[];
 };
 
 export function HomeClient({
@@ -44,6 +46,7 @@ export function HomeClient({
   initialSettings,
   initialCurrentTopic,
   initialActiveStudentId,
+  initialCalendarEvents,
 }: HomeClientProps) {
   const shell = (
     <>
@@ -52,7 +55,13 @@ export function HomeClient({
         userEmail={userEmail}
         showProfileLink={isAuthenticated}
       />
-      <AppShell showIntro={false} menuStudents={isAuthenticated ? students : []}>
+      <AppShell
+        showIntro={false}
+        menuStudents={isAuthenticated ? students : []}
+        calendarStudents={isAuthenticated ? students : []}
+        initialCalendarEvents={isAuthenticated ? initialCalendarEvents : []}
+        isStudentAccount={isStudentAccount}
+      >
         {isAuthenticated && profile ? (
           <AuthenticatedMainPane
             profile={profile}

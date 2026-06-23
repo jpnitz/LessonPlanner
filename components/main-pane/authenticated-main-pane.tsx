@@ -7,6 +7,7 @@ import { CurriculumPane } from "@/components/curriculum/curriculum-pane";
 import { ProposedCurriculumPane } from "@/components/proposed-curriculum/proposed-curriculum-pane";
 import { ProfilePane } from "@/components/profile/profile-pane";
 import { CompleteProfileBanner } from "@/components/profile/complete-profile-banner";
+import { LessonPane } from "@/components/main-pane/lesson-pane";
 
 type AuthenticatedMainPaneProps = {
   profile: Profile;
@@ -27,7 +28,11 @@ export function AuthenticatedMainPane({
   curricula,
   curriculumDetails,
 }: AuthenticatedMainPaneProps) {
-  const { view } = useMainPane();
+  const { view, selectedLessonEvent } = useMainPane();
+
+  if (view === "lesson" && selectedLessonEvent) {
+    return <LessonPane event={selectedLessonEvent} />;
+  }
 
   if (view === "proposed-curriculum") {
     return <ProposedCurriculumPane />;
@@ -74,7 +79,7 @@ export function AuthenticatedMainPane({
             </li>
             <li>
               <strong className="text-foreground">Calendar</strong> (top right):
-              click the bar to show or hide.
+              month/week/day views; click a lesson to open it here.
             </li>
             <li>
               <strong className="text-foreground">Curriculum</strong> (header):

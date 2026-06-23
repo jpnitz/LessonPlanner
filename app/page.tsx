@@ -10,6 +10,8 @@ import {
   fetchInitialCurrentTopic,
   fetchLessonPlannerSettings,
 } from "@/lib/lesson-planner/load-settings";
+import { fetchCalendarEvents } from "@/lib/calendar/fetch";
+import { getViewRange } from "@/lib/calendar/date-utils";
 import { HomeClient } from "@/components/home-client";
 import { EnvBanner } from "@/components/setup/env-banner";
 import type {
@@ -18,6 +20,7 @@ import type {
   CurriculumSummary,
   LessonPlannerSettings,
 } from "@/types/curriculum";
+import type { CalendarEventDisplay } from "@/types/calendar";
 import type { Profile, StudentSafe } from "@/types/profile";
 
 export default async function Home() {
@@ -35,6 +38,7 @@ export default async function Home() {
   let initialSettings: LessonPlannerSettings | null = null;
   let initialCurrentTopic: CurrentTopic | null = null;
   let initialActiveStudentId: string | null = null;
+  let initialCalendarEvents: CalendarEventDisplay[] = [];
 
   if (supabaseConfigured) {
     const supabase = await createClient();
@@ -122,9 +126,25 @@ export default async function Home() {
         ).then((details) =>
           details.filter((detail): detail is CurriculumDetail => detail !== null),
         );
+
+        const visibleStudentIds =
+          initialSettings.selected_student_ids.length > 0
+            ? initialSettings.selected_student_ids.filter((id) =>
+                students.some((student) => student.id === id),
+              )
+            : students.map((student) => student.id);
+
+        const weekRange = getViewRange("week", new Date());
+        initialCalendarEvents = await fetchCalendarEvents(supabase, {
+          start: weekRange.start,
+          end: weekRange.end,
+          studentIds:
+            visibleStudentIds.length > 0 ? visibleStudentIds : undefined,
+        });
       } catch {
         curricula = [];
         curriculumDetails = [];
+        initialCalendarEvents = [];
       }
     }
   }
@@ -146,6 +166,7 @@ export default async function Home() {
         initialSettings={initialSettings}
         initialCurrentTopic={initialCurrentTopic}
         initialActiveStudentId={initialActiveStudentId}
+        initialCalendarEvents={initialCalendarEvents}
       />
     </>
   );
