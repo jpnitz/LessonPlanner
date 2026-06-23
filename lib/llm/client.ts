@@ -124,3 +124,108 @@ Do not include the JSON block until you are ready to propose standards.`;
 }
 
 export { PROPOSED_STANDARDS_MARKER };
+
+const PROPOSED_LESSONS_MARKER = "PROPOSED_LESSONS_JSON:";
+
+const VALID_ACTIVITY_TYPES = new Set([
+  "video",
+  "web_activity",
+  "computer_challenge",
+  "worksheet",
+  "home_activity",
+  "community_activity",
+  "thought_experiment",
+]);
+
+export function extractProposedLessons(content: string) {
+  const markerIndex = content.indexOf(PROPOSED_LESSONS_MARKER);
+  if (markerIndex === -1) {
+    return { visibleContent: content, proposed: null };
+  }
+
+  const visibleContent = content.slice(0, markerIndex).trim();
+  const jsonPart = content
+    .slice(markerIndex + PROPOSED_LESSONS_MARKER.length)
+    .trim();
+
+  try {
+    const parsed = JSON.parse(jsonPart) as {
+      lessons?: Array<{
+        standard_title: string;
+        standard_id?: string | null;
+        curriculum_id?: string | null;
+        curriculum_title?: string | null;
+        title: string;
+        summary?: string;
+        content?: string;
+        activities?: Array<{
+          activity_type: string;
+          title: string;
+          description?: string;
+          duration_minutes?: number;
+          resources?: { url?: string; notes?: string };
+        }>;
+      }>;
+    };
+
+    if (!Array.isArray(parsed.lessons) || parsed.lessons.length === 0) {
+      return { visibleContent, proposed: null };
+    }
+
+    const lessons = parsed.lessons
+      .filter((lesson) => lesson.title && lesson.standard_title)
+      .map((lesson, index) => ({
+        client_id: `draft-${index}-${Date.now()}`,
+        standard_id: lesson.standard_id ?? null,
+        standard_title: lesson.standard_title,
+        curriculum_id: lesson.curriculum_id ?? null,
+        curriculum_title: lesson.curriculum_title ?? null,
+        title: lesson.title,
+        summary: lesson.summary ?? "",
+        content: lesson.content ?? "",
+        activities: (lesson.activities ?? [])
+          .filter(
+            (activity) =>
+              activity.title &&
+              VALID_ACTIVITY_TYPES.has(activity.activity_type),
+          )
+          .map((activity) => ({
+            activity_type: activity.activity_type as
+              | "video"
+              | "web_activity"
+              | "computer_challenge"
+              | "worksheet"
+              | "home_activity"
+              | "community_activity"
+              | "thought_experiment",
+            title: activity.title,
+            description: activity.description,
+            duration_minutes: activity.duration_minutes,
+            resources: activity.resources,
+          })),
+      }));
+
+    if (lessons.length === 0) {
+      return { visibleContent, proposed: null };
+    }
+
+    return { visibleContent, proposed: { lessons } };
+  } catch {
+    return { visibleContent: content, proposed: null };
+  }
+}
+
+export function buildProposedLessonsInstruction(options: {
+  plannerConstraints: string;
+  standardCount: number;
+}) {
+  return `Generate ${options.standardCount} complete lesson plan(s) from the provided learning standards and KSAs.
+Each lesson must include multiple activities using these activity_type values only:
+video, web_activity, computer_challenge, worksheet, home_activity, community_activity, thought_experiment.
+${options.plannerConstraints}
+Append a single line starting with exactly "${PROPOSED_LESSONS_MARKER}" followed by JSON (no markdown fences) in this shape:
+{"lessons":[{"standard_title":"...","standard_id":"optional uuid","curriculum_id":"optional uuid","curriculum_title":"optional","title":"Lesson title","summary":"Short summary","content":"Markdown overview for the parent/teacher","activities":[{"activity_type":"video","title":"...","description":"...","duration_minutes":20,"resources":{"url":"https://...","notes":"..."}}]}]}
+Do not include the JSON block until the lesson plans are complete.`;
+}
+
+export { PROPOSED_LESSONS_MARKER };

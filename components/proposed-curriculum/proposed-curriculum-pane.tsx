@@ -2,7 +2,12 @@
 
 import { useProposedCurriculum } from "@/components/proposed-curriculum/proposed-curriculum-context";
 import { useMainPane } from "@/components/main-pane/main-pane-context";
+import { useLessonPlanner } from "@/components/lesson-planner/lesson-planner-context";
+import { useCurrentTopic } from "@/components/current-topic/current-topic-context";
+import { resolveActiveStudentId } from "@/lib/students/access";
+import { GenerateLessonsAction } from "@/components/lessons/generate-lessons-action";
 import { Button } from "@/components/ui/button";
+import type { StudentSafe } from "@/types/profile";
 
 const KSA_LABELS = {
   knowledge: "Knowledge",
@@ -10,9 +15,21 @@ const KSA_LABELS = {
   ability: "Ability",
 } as const;
 
-export function ProposedCurriculumPane() {
+type ProposedCurriculumPaneProps = {
+  students: StudentSafe[];
+};
+
+export function ProposedCurriculumPane({ students }: ProposedCurriculumPaneProps) {
   const { proposedCurriculum } = useProposedCurriculum();
   const { openCurriculum } = useMainPane();
+  const { settings } = useLessonPlanner();
+  const { currentTopic } = useCurrentTopic();
+
+  const activeStudentId = resolveActiveStudentId(
+    students,
+    settings.selected_student_ids,
+    currentTopic?.studentId,
+  );
 
   if (!proposedCurriculum) {
     return (
@@ -35,9 +52,25 @@ export function ProposedCurriculumPane() {
           </p>
         ) : null}
         <p className="mt-2 text-sm text-muted">
-          Review the proposed learning standards below. Turning standards into
-          scheduled lessons comes in Phase 6.
+          Review the proposed learning standards below, then generate AI lesson
+          plans and schedule them on the calendar.
         </p>
+        {activeStudentId ? (
+          <div className="mt-4">
+            <GenerateLessonsAction
+              studentId={activeStudentId}
+              source="proposed_curriculum"
+              proposedCurriculum={proposedCurriculum}
+              label="Generate lessons from these standards"
+              size="md"
+            />
+          </div>
+        ) : (
+          <p className="mt-2 text-xs text-danger">
+            Select a student in Menu → Lesson Planner Options before generating
+            lessons.
+          </p>
+        )}
       </div>
 
       <div className="space-y-6">

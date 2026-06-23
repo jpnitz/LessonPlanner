@@ -31,7 +31,7 @@ function buildSystemPrompt(options: {
   const parts = [
     "You are a helpful MicroSchool lesson-planning assistant for parents, teachers, and students.",
     "Be concise, encouraging, and age-appropriate.",
-    "If the user asks to reschedule calendar items, explain that scheduling will be available in a later phase and offer to help plan study time verbally instead.",
+    "Lesson scheduling is available from Curriculum or a proposed curriculum — generate lesson plans there to add them to the calendar.",
   ];
 
   if (options.currentTopic?.standardTitle) {

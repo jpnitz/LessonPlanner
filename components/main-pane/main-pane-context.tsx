@@ -15,6 +15,7 @@ export type MainPaneView =
   | "profile"
   | "curriculum"
   | "proposed-curriculum"
+  | "proposed-lessons"
   | "lesson";
 
 type MainPaneContextValue = {
@@ -23,6 +24,7 @@ type MainPaneContextValue = {
   openProfile: () => void;
   openCurriculum: () => void;
   openProposedCurriculum: () => void;
+  openProposedLessons: () => void;
   openLesson: (event: CalendarEventDisplay) => void;
   openHome: () => void;
 };
@@ -40,6 +42,7 @@ export function MainPaneProvider({ children }: { children: ReactNode }) {
     () => setView("proposed-curriculum"),
     [],
   );
+  const openProposedLessons = useCallback(() => setView("proposed-lessons"), []);
   const openLesson = useCallback((event: CalendarEventDisplay) => {
     setSelectedLessonEvent(event);
     setView("lesson");
@@ -56,6 +59,7 @@ export function MainPaneProvider({ children }: { children: ReactNode }) {
       openProfile,
       openCurriculum,
       openProposedCurriculum,
+      openProposedLessons,
       openLesson,
       openHome,
     }),
@@ -65,6 +69,7 @@ export function MainPaneProvider({ children }: { children: ReactNode }) {
       openProfile,
       openCurriculum,
       openProposedCurriculum,
+      openProposedLessons,
       openLesson,
       openHome,
     ],

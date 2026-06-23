@@ -4,6 +4,7 @@ import type { CurriculumDetail } from "@/types/curriculum";
 import { useCurrentTopic } from "@/components/current-topic/current-topic-context";
 import { useLessonPlanner } from "@/components/lesson-planner/lesson-planner-context";
 import { resolveActiveStudentId } from "@/lib/students/access";
+import { GenerateLessonsAction } from "@/components/lessons/generate-lessons-action";
 import type { StudentSafe } from "@/types/profile";
 
 const KSA_LABELS = {
@@ -101,6 +102,16 @@ export function CurriculumDetailView({
                               ) : null}
                             </li>
                           ))}
+                          {activeStudentId ? (
+                            <li className="pt-2">
+                              <GenerateLessonsAction
+                                studentId={activeStudentId}
+                                source="current_topic"
+                                standardId={standard.id}
+                                label="Generate lesson plan for this standard"
+                              />
+                            </li>
+                          ) : null}
                         </ul>
                       ) : null}
                     </button>

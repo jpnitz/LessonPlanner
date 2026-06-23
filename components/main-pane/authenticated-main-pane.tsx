@@ -5,6 +5,7 @@ import type { Profile, StudentSafe } from "@/types/profile";
 import { useMainPane } from "@/components/main-pane/main-pane-context";
 import { CurriculumPane } from "@/components/curriculum/curriculum-pane";
 import { ProposedCurriculumPane } from "@/components/proposed-curriculum/proposed-curriculum-pane";
+import { ProposedLessonsPane } from "@/components/proposed-lessons/proposed-lessons-pane";
 import { ProfilePane } from "@/components/profile/profile-pane";
 import { CompleteProfileBanner } from "@/components/profile/complete-profile-banner";
 import { LessonPane } from "@/components/main-pane/lesson-pane";
@@ -34,8 +35,12 @@ export function AuthenticatedMainPane({
     return <LessonPane event={selectedLessonEvent} />;
   }
 
+  if (view === "proposed-lessons") {
+    return <ProposedLessonsPane />;
+  }
+
   if (view === "proposed-curriculum") {
-    return <ProposedCurriculumPane />;
+    return <ProposedCurriculumPane students={students} />;
   }
 
   if (view === "curriculum") {
