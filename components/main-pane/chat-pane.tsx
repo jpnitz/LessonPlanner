@@ -14,7 +14,7 @@ type ChatPaneProps = {
 };
 
 export function ChatPane({ students }: ChatPaneProps) {
-  const { messages } = useMenuChat();
+  const { messages, chatMode } = useMenuChat();
   const { proposedCurriculum, proposedCurriculumError } = useProposedCurriculum();
   const { settings } = useLessonPlanner();
   const { currentTopic } = useCurrentTopic();
@@ -68,6 +68,13 @@ export function ChatPane({ students }: ChatPaneProps) {
       {proposedCurriculumError ? (
         <p className="rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
           {proposedCurriculumError}
+        </p>
+      ) : null}
+
+      {chatMode === "create_curriculum" && !proposedCurriculum && !proposedCurriculumError ? (
+        <p className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm text-muted">
+          Continue the conversation in the Menu pane. When the assistant proposes
+          standards, an Approve button will appear here.
         </p>
       ) : null}
 

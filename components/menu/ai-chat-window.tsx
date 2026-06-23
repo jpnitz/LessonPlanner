@@ -38,6 +38,7 @@ export function AiChatWindow({
     markStandardChat,
     markCreateCurriculum,
     resetChat,
+    chatMode,
   } = useMenuChat();
   const {
     setProposedCurriculum,
@@ -206,7 +207,12 @@ export function AiChatWindow({
 
   const placeholder = currentTopic
     ? `Discuss: ${currentTopic.standardTitle}`
-    : "Describe a topic, ask a question, or say what you want to learn…";
+    : chatMode === "create_curriculum"
+      ? "Answer the assistant's questions about the new curriculum…"
+      : "Describe a topic, ask a question, or say what you want to learn…";
+
+  const sendMode: "chat" | "create_curriculum" =
+    chatMode === "create_curriculum" ? "create_curriculum" : "chat";
 
   return (
     <section className="flex shrink-0 flex-col rounded-lg border border-border bg-surface">
@@ -295,9 +301,9 @@ export function AiChatWindow({
             type="button"
             size="sm"
             disabled={isSending || !draft.trim()}
-            onClick={() => sendChat("chat")}
+            onClick={() => sendChat(sendMode)}
           >
-            Send
+            {sendMode === "create_curriculum" ? "Send reply" : "Send"}
           </Button>
           <Button
             type="button"
