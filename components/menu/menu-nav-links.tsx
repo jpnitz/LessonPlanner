@@ -15,14 +15,14 @@ export function MenuNavLinks() {
         onClick={openCurriculum}
         className="block w-full rounded-md px-2 py-2 text-left text-sm font-medium text-accent hover:bg-accent-soft hover:text-accent-hover"
       >
-        See Your Curriculum
+        Your Curriculum
       </button>
       <button
         type="button"
         onClick={openLessons}
         className="block w-full rounded-md px-2 py-2 text-left text-sm font-medium text-accent hover:bg-accent-soft hover:text-accent-hover"
       >
-        See Your Lessons/Calendar
+        Your Lessons/Calendar
       </button>
     </nav>
   );

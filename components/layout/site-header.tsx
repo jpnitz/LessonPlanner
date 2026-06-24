@@ -19,7 +19,7 @@ export function SiteHeader({
 }: SiteHeaderProps) {
   const router = useRouter();
   const { openAuth } = useAuthModal();
-  const { openHome, openLessons } = useMainPane();
+  const { openHome, openLessons, openCurriculum } = useMainPane();
 
   async function handleSignOut() {
     try {
@@ -62,6 +62,13 @@ export function SiteHeader({
                 className="text-sm font-medium text-accent hover:text-accent-hover"
               >
                 Lessons/Calendar
+              </button>
+              <button
+                type="button"
+                onClick={openCurriculum}
+                className="text-sm font-medium text-accent hover:text-accent-hover"
+              >
+                Your Curriculum
               </button>
             </>
           ) : null}

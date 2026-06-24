@@ -28,12 +28,9 @@ export function MenuPane({ students }: MenuPaneProps) {
 
   if (view === "curriculum") {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto pr-1">
-        <div className="shrink-0">
-          <p className="text-base font-semibold text-foreground">Menu</p>
-        </div>
-        <MenuAiChat variant="curriculum" />
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden pr-1">
         <StudentSelector students={students} />
+        <MenuAiChat variant="curriculum" />
         <MenuNavLinks />
       </div>
     );
@@ -41,15 +38,12 @@ export function MenuPane({ students }: MenuPaneProps) {
 
   if (view === "lessons" || view === "proposed-lessons") {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto pr-1">
-        <div className="shrink-0">
-          <p className="text-base font-semibold text-foreground">Menu</p>
-        </div>
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden pr-1">
+        <StudentSelector students={students} />
         <MenuAiChat
           variant="lessons"
           selectedLessonEvent={selectedLessonEvent}
         />
-        <StudentSelector students={students} />
         <MenuNavLinks />
       </div>
     );

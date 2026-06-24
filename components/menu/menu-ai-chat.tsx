@@ -64,8 +64,8 @@ export function MenuAiChat({ variant, selectedLessonEvent }: MenuAiChatProps) {
         : "Select a subject, standard, or KSA in the main pane.";
 
   return (
-    <section className="flex shrink-0 flex-col rounded-lg border border-border bg-surface">
-      <div className="border-b border-border px-3 py-2">
+    <section className="flex min-h-0 flex-1 flex-col rounded-lg border border-border bg-surface">
+      <div className="shrink-0 border-b border-border px-3 py-2">
         <h3 className="text-sm font-semibold text-foreground">AI chat</h3>
         {focusLabel ? (
           <p className="mt-0.5 text-xs text-muted">Topic: {focusLabel}</p>
@@ -74,7 +74,8 @@ export function MenuAiChat({ variant, selectedLessonEvent }: MenuAiChatProps) {
 
       <div
         ref={scrollRef}
-        className="max-h-48 min-h-[6rem] space-y-2 overflow-y-auto p-3"
+        className="min-h-[6rem] resize-y overflow-y-auto space-y-2 border-b border-border p-3"
+        style={{ height: "12rem", maxHeight: "50vh" }}
       >
         {messages.length === 0 ? (
           <p className="text-sm text-muted">{emptyHint}</p>
@@ -109,7 +110,7 @@ export function MenuAiChat({ variant, selectedLessonEvent }: MenuAiChatProps) {
         </div>
       ) : null}
 
-      <div className="space-y-2 border-t border-border p-3">
+      <div className="shrink-0 space-y-2 border-t border-border p-3">
         <textarea
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
