@@ -4,33 +4,16 @@ import { useState } from "react";
 import type { StudentSafe } from "@/types/profile";
 import { DAY_LABELS, DAY_VALUES } from "@/types/curriculum";
 import { useLessonPlanner } from "@/components/lesson-planner/lesson-planner-context";
-import { useMenuChat } from "@/components/menu/menu-chat-context";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 type LessonPlannerOptionsProps = {
   students: StudentSafe[];
-  chatDraft: string;
-  onCreateCurriculum: () => void;
-  onResetChat: () => void;
-  isCreating: boolean;
 };
 
-export function LessonPlannerOptions({
-  students,
-  chatDraft,
-  onCreateCurriculum,
-  onResetChat,
-  isCreating,
-}: LessonPlannerOptionsProps) {
+export function LessonPlannerOptions({ students }: LessonPlannerOptionsProps) {
   const { settings, isLoading, isSaving, saveError, updateSettings } =
     useLessonPlanner();
-  const { chatMode } = useMenuChat();
   const [expanded, setExpanded] = useState(true);
-
-  const showResetChat =
-    chatMode === "standard" ||
-    chatMode === "create_curriculum";
 
   function toggleDay(day: number) {
     const next = settings.days_of_week.includes(day)
@@ -165,42 +148,8 @@ export function LessonPlannerOptions({
                       );
                     })}
                   </div>
-                  <p className="mt-2 text-xs text-muted">
-                    Selected students filter the Curriculum page. Leave all
-                    unchecked to show every curriculum.
-                  </p>
                 </div>
               ) : null}
-
-              {showResetChat ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={onResetChat}
-                  className="w-full"
-                >
-                  Reset chat
-                </Button>
-              ) : (
-                <>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    disabled={!chatDraft.trim() || isCreating}
-                    onClick={onCreateCurriculum}
-                    className="w-full"
-                  >
-                    Create new curriculum
-                  </Button>
-                  {!chatDraft.trim() ? (
-                    <p className="text-xs text-muted">
-                      Describe the subject you want in the chat box above first.
-                    </p>
-                  ) : null}
-                </>
-              )}
             </>
           )}
         </div>

@@ -19,7 +19,7 @@ export function SiteHeader({
 }: SiteHeaderProps) {
   const router = useRouter();
   const { openAuth } = useAuthModal();
-  const { openProfile, openCurriculum } = useMainPane();
+  const { openHome, openLessons, openCurriculum } = useMainPane();
 
   async function handleSignOut() {
     try {
@@ -30,6 +30,8 @@ export function SiteHeader({
       router.refresh();
     }
   }
+
+  const displayName = userName?.trim() || userEmail || "Account";
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface px-4 md:px-6">
@@ -49,23 +51,32 @@ export function SiteHeader({
             <>
               <button
                 type="button"
+                onClick={openHome}
+                className="text-sm font-medium text-accent hover:text-accent-hover"
+              >
+                Create Curriculum
+              </button>
+              <button
+                type="button"
+                onClick={openLessons}
+                className="text-sm font-medium text-accent hover:text-accent-hover"
+              >
+                Lessons/Calendar
+              </button>
+              <button
+                type="button"
                 onClick={openCurriculum}
                 className="text-sm font-medium text-accent hover:text-accent-hover"
               >
                 Your Curriculum
               </button>
-              <button
-                type="button"
-                onClick={openProfile}
-                className="text-sm font-medium text-accent hover:text-accent-hover"
-              >
-                Profile
-              </button>
             </>
           ) : null}
-          <p className="hidden text-sm text-muted sm:block">
-            {userName ? `${userName} · ` : ""}
-            {userEmail}
+          <p
+            className="hidden text-sm font-medium text-foreground sm:block"
+            title={userEmail}
+          >
+            {displayName}
           </p>
           <Button variant="secondary" size="sm" onClick={handleSignOut}>
             Sign out

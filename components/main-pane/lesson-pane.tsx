@@ -14,7 +14,7 @@ type LessonPaneProps = {
 };
 
 export function LessonPane({ event }: LessonPaneProps) {
-  const { openHome } = useMainPane();
+  const { openLessons } = useMainPane();
   const title = eventDisplayLabel(event);
   const [activities, setActivities] = useState<LessonActivity[]>([]);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
@@ -69,8 +69,8 @@ export function LessonPane({ event }: LessonPaneProps) {
             <p className="text-sm text-muted">Standard: {event.standard_title}</p>
           ) : null}
         </div>
-        <Button variant="secondary" size="sm" onClick={openHome}>
-          Back
+        <Button variant="secondary" size="sm" onClick={openLessons}>
+          Back to calendar
         </Button>
       </div>
 

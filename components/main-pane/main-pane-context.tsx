@@ -12,23 +12,22 @@ import type { CalendarEventDisplay } from "@/types/calendar";
 
 export type MainPaneView =
   | "home"
-  | "chat"
   | "profile"
   | "curriculum"
+  | "lessons"
   | "proposed-curriculum"
-  | "proposed-lessons"
-  | "lesson";
+  | "proposed-lessons";
 
 type MainPaneContextValue = {
   view: MainPaneView;
   selectedLessonEvent: CalendarEventDisplay | null;
   focusCurriculumId: string | null;
   openProfile: () => void;
-  openChat: () => void;
   openCurriculum: () => void;
   openCurriculumWithId: (curriculumId: string) => void;
   openProposedCurriculum: () => void;
   openProposedLessons: () => void;
+  openLessons: () => void;
   openLesson: (event: CalendarEventDisplay) => void;
   openHome: () => void;
   clearFocusCurriculum: () => void;
@@ -45,7 +44,6 @@ export function MainPaneProvider({ children }: { children: ReactNode }) {
   );
 
   const openProfile = useCallback(() => setView("profile"), []);
-  const openChat = useCallback(() => setView("chat"), []);
   const openCurriculum = useCallback(() => setView("curriculum"), []);
   const openCurriculumWithId = useCallback((curriculumId: string) => {
     setFocusCurriculumId(curriculumId);
@@ -59,9 +57,10 @@ export function MainPaneProvider({ children }: { children: ReactNode }) {
     [],
   );
   const openProposedLessons = useCallback(() => setView("proposed-lessons"), []);
+  const openLessons = useCallback(() => setView("lessons"), []);
   const openLesson = useCallback((event: CalendarEventDisplay) => {
     setSelectedLessonEvent(event);
-    setView("lesson");
+    setView("lessons");
   }, []);
   const openHome = useCallback(() => {
     setSelectedLessonEvent(null);
@@ -74,11 +73,11 @@ export function MainPaneProvider({ children }: { children: ReactNode }) {
       selectedLessonEvent,
       focusCurriculumId,
       openProfile,
-      openChat,
       openCurriculum,
       openCurriculumWithId,
       openProposedCurriculum,
       openProposedLessons,
+      openLessons,
       openLesson,
       openHome,
       clearFocusCurriculum,
@@ -88,11 +87,11 @@ export function MainPaneProvider({ children }: { children: ReactNode }) {
       selectedLessonEvent,
       focusCurriculumId,
       openProfile,
-      openChat,
       openCurriculum,
       openCurriculumWithId,
       openProposedCurriculum,
       openProposedLessons,
+      openLessons,
       openLesson,
       openHome,
       clearFocusCurriculum,

@@ -7,9 +7,8 @@ import { CurriculumPane } from "@/components/curriculum/curriculum-pane";
 import { ProposedCurriculumPane } from "@/components/proposed-curriculum/proposed-curriculum-pane";
 import { ProposedLessonsPane } from "@/components/proposed-lessons/proposed-lessons-pane";
 import { ProfilePane } from "@/components/profile/profile-pane";
-import { CompleteProfileBanner } from "@/components/profile/complete-profile-banner";
+import { CreateCurriculumPane } from "@/components/main-pane/create-curriculum-pane";
 import { LessonPane } from "@/components/main-pane/lesson-pane";
-import { ChatPane } from "@/components/main-pane/chat-pane";
 
 type AuthenticatedMainPaneProps = {
   profile: Profile;
@@ -29,12 +28,20 @@ export function AuthenticatedMainPane({
   const { view, selectedLessonEvent } = useMainPane();
   const { curricula, curriculumDetails } = useCurriculumCatalog();
 
-  if (view === "chat") {
-    return <ChatPane students={students} />;
-  }
+  if (view === "lessons") {
+    if (selectedLessonEvent) {
+      return <LessonPane event={selectedLessonEvent} />;
+    }
 
-  if (view === "lesson" && selectedLessonEvent) {
-    return <LessonPane event={selectedLessonEvent} />;
+    return (
+      <div className="mx-auto max-w-2xl space-y-4">
+        <h2 className="text-2xl font-semibold text-foreground">Lessons &amp; Calendar</h2>
+        <p className="text-sm leading-7 text-muted">
+          Select a lesson from the calendar above to view it here. Use the menu
+          chat to ask questions or test your knowledge on the selected lesson.
+        </p>
+      </div>
+    );
   }
 
   if (view === "proposed-lessons") {
@@ -67,38 +74,9 @@ export function AuthenticatedMainPane({
   }
 
   return (
-    <>
-      <CompleteProfileBanner show={showProfileIncompleteBanner} />
-      <div className="mx-auto max-w-2xl space-y-4">
-        <h2 className="text-2xl font-semibold text-foreground">
-          Welcome to MicroSchool Lesson Planner
-        </h2>
-        <p className="text-sm leading-7 text-muted">
-          MicroSchool helps parents and teachers plan personalized lessons for
-          each student.
-        </p>
-        <div className="rounded-lg border border-border bg-surface p-4 text-sm leading-7 text-foreground">
-          <p className="font-medium">How to use the app shell</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
-            <li>
-              <strong className="text-foreground">Menu</strong> (left): AI chat
-              (responses appear here in the main pane).
-            </li>
-            <li>
-              <strong className="text-foreground">Calendar</strong> (top right):
-              month/week/day views; click a lesson to open it here.
-            </li>
-            <li>
-              <strong className="text-foreground">Curriculum</strong> (header):
-              browse learning standards and select a current topic.
-            </li>
-            <li>
-              <strong className="text-foreground">Profile</strong> (header): open
-              account and student settings in this pane.
-            </li>
-          </ul>
-        </div>
-      </div>
-    </>
+    <CreateCurriculumPane
+      students={students}
+      showProfileIncompleteBanner={showProfileIncompleteBanner}
+    />
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { CurriculumDetail, CurriculumSummary } from "@/types/curriculum";
 import type { StudentSafe } from "@/types/profile";
 import { CurriculumList } from "@/components/curriculum/curriculum-list";
@@ -26,6 +27,23 @@ export function CurriculumPane({
   const { currentTopic } = useCurrentTopic();
   const { settings } = useLessonPlanner();
   const { focusCurriculumId, clearFocusCurriculum } = useMainPane();
+  const router = useRouter();
+  const previousStudentIdsRef = useRef(settings.selected_student_ids);
+
+  useEffect(() => {
+    const previous = previousStudentIdsRef.current;
+    const current = settings.selected_student_ids;
+    previousStudentIdsRef.current = current;
+
+    if (
+      previous.length === current.length &&
+      previous.every((id, index) => id === current[index])
+    ) {
+      return;
+    }
+
+    router.refresh();
+  }, [router, settings.selected_student_ids]);
 
   useEffect(() => {
     if (!focusCurriculumId) return;
@@ -65,7 +83,7 @@ export function CurriculumPane({
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <div>
-        <h2 className="text-2xl font-semibold text-foreground">Curriculum</h2>
+        <h2 className="text-2xl font-semibold text-foreground">Your Curriculum</h2>
         <p className="mt-2 text-sm leading-7 text-muted">
           Browse available curricula and select a learning standard to set your
           current topic.
