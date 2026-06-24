@@ -1,7 +1,7 @@
 "use client";
 
-import type { CurriculumDetail, CurriculumSummary } from "@/types/curriculum";
 import type { Profile, StudentSafe } from "@/types/profile";
+import { useCurriculumCatalog } from "@/components/curriculum/curriculum-catalog-context";
 import { useMainPane } from "@/components/main-pane/main-pane-context";
 import { CurriculumPane } from "@/components/curriculum/curriculum-pane";
 import { ProposedCurriculumPane } from "@/components/proposed-curriculum/proposed-curriculum-pane";
@@ -17,8 +17,6 @@ type AuthenticatedMainPaneProps = {
   students: StudentSafe[];
   isStudentAccount: boolean;
   showProfileIncompleteBanner: boolean;
-  curricula: CurriculumSummary[];
-  curriculumDetails: CurriculumDetail[];
 };
 
 export function AuthenticatedMainPane({
@@ -27,10 +25,9 @@ export function AuthenticatedMainPane({
   students,
   isStudentAccount,
   showProfileIncompleteBanner,
-  curricula,
-  curriculumDetails,
 }: AuthenticatedMainPaneProps) {
   const { view, selectedLessonEvent } = useMainPane();
+  const { curricula, curriculumDetails } = useCurriculumCatalog();
 
   if (view === "chat") {
     return <ChatPane students={students} />;

@@ -1,4 +1,11 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { validateAndNormalizeProposedCurriculum } from "@/lib/curriculum/validate-proposed";
+import { parseJsonAfterMarker, extractBalancedJsonObject, stripMarkdownJsonFence } from "@/lib/llm/json-extract";
+import {
+  PROPOSED_KSAS_MARKER,
+  PROPOSED_LESSONS_MARKER,
+  PROPOSED_STANDARDS_MARKER,
+} from "@/lib/llm/markers";
 
 export async function getStudentLlmApiKey(
   studentId: string,
@@ -47,11 +54,23 @@ export type LlmCompletionResult = {
 export async function callLlm(
   apiKey: string,
   messages: LlmMessage[],
+  options?: { temperature?: number; maxTokens?: number },
 ): Promise<LlmCompletionResult> {
   const baseUrl =
     process.env.OPENAI_API_BASE_URL?.replace(/\/$/, "") ??
     "https://api.openai.com/v1";
   const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+  const temperature = options?.temperature ?? 0.7;
+
+  const body: Record<string, unknown> = {
+    model,
+    messages,
+    temperature,
+  };
+
+  if (options?.maxTokens !== undefined) {
+    body.max_tokens = options.maxTokens;
+  }
 
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
@@ -59,11 +78,7 @@ export async function callLlm(
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: 0.7,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -83,36 +98,40 @@ export async function callLlm(
   return { content };
 }
 
-const PROPOSED_STANDARDS_MARKER = "PROPOSED_STANDARDS_JSON:";
-
 export function extractProposedCurriculum(content: string) {
-  const markerIndex = content.indexOf(PROPOSED_STANDARDS_MARKER);
-  if (markerIndex === -1) {
-    return { visibleContent: content, proposed: null };
+  const { jsonObject, visibleContent } = parseJsonAfterMarker(
+    content,
+    PROPOSED_STANDARDS_MARKER,
+  );
+
+  if (!jsonObject) {
+    return { visibleContent: content, proposed: null, parseError: null };
   }
 
-  const visibleContent = content.slice(0, markerIndex).trim();
-  const jsonPart = content
-    .slice(markerIndex + PROPOSED_STANDARDS_MARKER.length)
-    .trim();
-
   try {
-    const proposed = JSON.parse(jsonPart) as {
-      title: string;
-      description?: string;
-      standards: Array<{
-        title: string;
-        domain_title?: string;
-        ksas?: Array<{
-          ksa_type: "knowledge" | "skill" | "ability";
-          title: string;
-          description?: string;
-        }>;
-      }>;
+    const parsed = JSON.parse(jsonObject) as unknown;
+    const validated = validateAndNormalizeProposedCurriculum(parsed);
+
+    if (!validated.ok) {
+      return {
+        visibleContent,
+        proposed: null,
+        parseError: validated.error,
+      };
+    }
+
+    return {
+      visibleContent,
+      proposed: validated.curriculum,
+      parseError: null,
     };
-    return { visibleContent, proposed };
   } catch {
-    return { visibleContent: content, proposed: null };
+    return {
+      visibleContent,
+      proposed: null,
+      parseError:
+        "Standards were proposed but the JSON block could not be parsed. Ask the assistant to re-send the JSON block.",
+    };
   }
 }
 
@@ -123,9 +142,7 @@ Append a single line starting with exactly "${PROPOSED_STANDARDS_MARKER}" follow
 Do not include the JSON block until you are ready to propose standards.`;
 }
 
-export { PROPOSED_STANDARDS_MARKER };
-
-const PROPOSED_LESSONS_MARKER = "PROPOSED_LESSONS_JSON:";
+export { PROPOSED_STANDARDS_MARKER, PROPOSED_LESSONS_MARKER, PROPOSED_KSAS_MARKER };
 
 const VALID_ACTIVITY_TYPES = new Set([
   "video",
@@ -137,19 +154,27 @@ const VALID_ACTIVITY_TYPES = new Set([
   "thought_experiment",
 ]);
 
+const VALID_KSA_TYPES = new Set(["knowledge", "skill", "ability"]);
+
+function normalizeKsaType(value: string) {
+  const normalized = value.trim().toLowerCase();
+  return VALID_KSA_TYPES.has(normalized)
+    ? (normalized as "knowledge" | "skill" | "ability")
+    : null;
+}
+
 export function extractProposedLessons(content: string) {
-  const markerIndex = content.indexOf(PROPOSED_LESSONS_MARKER);
-  if (markerIndex === -1) {
+  const { jsonObject, visibleContent } = parseJsonAfterMarker(
+    content,
+    PROPOSED_LESSONS_MARKER,
+  );
+
+  if (!jsonObject) {
     return { visibleContent: content, proposed: null };
   }
 
-  const visibleContent = content.slice(0, markerIndex).trim();
-  const jsonPart = content
-    .slice(markerIndex + PROPOSED_LESSONS_MARKER.length)
-    .trim();
-
   try {
-    const parsed = JSON.parse(jsonPart) as {
+    const parsed = JSON.parse(jsonObject) as {
       lessons?: Array<{
         standard_title: string;
         standard_id?: string | null;
@@ -211,7 +236,7 @@ export function extractProposedLessons(content: string) {
 
     return { visibleContent, proposed: { lessons } };
   } catch {
-    return { visibleContent: content, proposed: null };
+    return { visibleContent, proposed: null };
   }
 }
 
@@ -228,21 +253,37 @@ Append a single line starting with exactly "${PROPOSED_LESSONS_MARKER}" followed
 Do not include the JSON block until the lesson plans are complete.`;
 }
 
-export { PROPOSED_LESSONS_MARKER };
-
-const PROPOSED_KSAS_MARKER = "PROPOSED_KSAS_JSON:";
-
 export function extractProposedKsas(content: string) {
-  const markerIndex = content.indexOf(PROPOSED_KSAS_MARKER);
-  if (markerIndex === -1) {
-    return { visibleContent: content, ksas: null };
+  const markerResult = parseJsonAfterMarker(content, PROPOSED_KSAS_MARKER);
+  if (markerResult.jsonObject) {
+    return parseKsasPayload(markerResult.jsonObject, markerResult.visibleContent);
   }
 
-  const visibleContent = content.slice(0, markerIndex).trim();
-  const jsonPart = content.slice(markerIndex + PROPOSED_KSAS_MARKER.length).trim();
+  const ksasKeyIndex = content.indexOf('"ksas"');
+  if (ksasKeyIndex !== -1) {
+    const searchStart = content.lastIndexOf("{", ksasKeyIndex);
+    const candidate =
+      searchStart >= 0
+        ? content.slice(searchStart)
+        : content.slice(ksasKeyIndex);
+    const jsonObject =
+      extractBalancedJsonObject(stripMarkdownJsonFence(candidate)) ??
+      extractBalancedJsonObject(content);
 
+    if (jsonObject) {
+      const parsed = parseKsasPayload(jsonObject, content.slice(0, ksasKeyIndex).trim());
+      if (parsed.ksas?.length) {
+        return parsed;
+      }
+    }
+  }
+
+  return { visibleContent: content, ksas: null };
+}
+
+function parseKsasPayload(jsonObject: string, visibleContent: string) {
   try {
-    const parsed = JSON.parse(jsonPart) as {
+    const parsed = JSON.parse(jsonObject) as {
       ksas?: Array<{
         ksa_type: string;
         title: string;
@@ -255,20 +296,20 @@ export function extractProposedKsas(content: string) {
     }
 
     const ksas = parsed.ksas
-      .filter(
-        (ksa) =>
-          ksa.title &&
-          ["knowledge", "skill", "ability"].includes(ksa.ksa_type),
-      )
-      .map((ksa) => ({
-        ksa_type: ksa.ksa_type as "knowledge" | "skill" | "ability",
-        title: ksa.title,
-        description: ksa.description,
-      }));
+      .map((ksa) => {
+        const ksaType = normalizeKsaType(ksa.ksa_type ?? "");
+        if (!ksaType || !ksa.title?.trim()) return null;
+        return {
+          ksa_type: ksaType,
+          title: ksa.title.trim(),
+          description: ksa.description?.trim() || undefined,
+        };
+      })
+      .filter((ksa): ksa is NonNullable<typeof ksa> => ksa !== null);
 
     return { visibleContent, ksas: ksas.length > 0 ? ksas : null };
   } catch {
-    return { visibleContent: content, ksas: null };
+    return { visibleContent, ksas: null };
   }
 }
 
@@ -282,8 +323,7 @@ Standard: ${standard.title}
 Domain: ${standard.domain_title ?? "General"}
 Curriculum: ${standard.curriculum_title ?? "Custom"}
 Provide at least one knowledge, one skill, and one ability item.
-Append a single line starting with exactly "${PROPOSED_KSAS_MARKER}" followed by JSON (no markdown fences):
-{"ksas":[{"ksa_type":"knowledge","title":"...","description":"..."},{"ksa_type":"skill","title":"..."},{"ksa_type":"ability","title":"..."}]}`;
+Use ksa_type values exactly: knowledge, skill, ability (all lowercase).
+Append a single line starting with exactly "${PROPOSED_KSAS_MARKER}" followed by compact JSON (no markdown fences, no text after the closing brace):
+{"ksas":[{"ksa_type":"knowledge","title":"...","description":"..."},{"ksa_type":"skill","title":"...","description":"..."},{"ksa_type":"ability","title":"...","description":"..."}]}`;
 }
-
-export { PROPOSED_KSAS_MARKER };

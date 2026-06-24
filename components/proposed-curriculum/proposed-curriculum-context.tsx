@@ -12,16 +12,37 @@ import type { ProposedCurriculum } from "@/types/curriculum";
 
 type ProposedCurriculumContextValue = {
   proposedCurriculum: ProposedCurriculum | null;
+  proposedCurriculumError: string | null;
   setProposedCurriculum: (curriculum: ProposedCurriculum | null) => void;
+  setProposedCurriculumError: (error: string | null) => void;
   confirmProposedCurriculum: () => void;
+  clearProposedCurriculum: () => void;
 };
 
 const ProposedCurriculumContext =
   createContext<ProposedCurriculumContextValue | null>(null);
 
 export function ProposedCurriculumProvider({ children }: { children: ReactNode }) {
-  const [proposedCurriculum, setProposedCurriculum] =
+  const [proposedCurriculum, setProposedCurriculumState] =
     useState<ProposedCurriculum | null>(null);
+  const [proposedCurriculumError, setProposedCurriculumError] = useState<
+    string | null
+  >(null);
+
+  const setProposedCurriculum = useCallback(
+    (curriculum: ProposedCurriculum | null) => {
+      setProposedCurriculumState(curriculum);
+      if (curriculum) {
+        setProposedCurriculumError(null);
+      }
+    },
+    [],
+  );
+
+  const clearProposedCurriculum = useCallback(() => {
+    setProposedCurriculumState(null);
+    setProposedCurriculumError(null);
+  }, []);
 
   const confirmProposedCurriculum = useCallback(() => {
     // Confirmation is handled by opening the main pane view; keep data in context.
@@ -30,10 +51,19 @@ export function ProposedCurriculumProvider({ children }: { children: ReactNode }
   const value = useMemo(
     () => ({
       proposedCurriculum,
+      proposedCurriculumError,
+      setProposedCurriculum,
+      setProposedCurriculumError,
+      confirmProposedCurriculum,
+      clearProposedCurriculum,
+    }),
+    [
+      proposedCurriculum,
+      proposedCurriculumError,
       setProposedCurriculum,
       confirmProposedCurriculum,
-    }),
-    [proposedCurriculum, confirmProposedCurriculum],
+      clearProposedCurriculum,
+    ],
   );
 
   return (

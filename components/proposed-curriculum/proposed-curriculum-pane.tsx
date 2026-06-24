@@ -1,34 +1,34 @@
 "use client";
 
 import { useProposedCurriculum } from "@/components/proposed-curriculum/proposed-curriculum-context";
+import { ProposedStandardsList } from "@/components/proposed-curriculum/proposed-standards-list";
+import { useApproveProposedCurriculum } from "@/components/proposed-curriculum/use-approve-proposed-curriculum";
 import { useMainPane } from "@/components/main-pane/main-pane-context";
 import { useLessonPlanner } from "@/components/lesson-planner/lesson-planner-context";
 import { useCurrentTopic } from "@/components/current-topic/current-topic-context";
-import { resolveActiveStudentId } from "@/lib/students/access";
 import { Button } from "@/components/ui/button";
 import type { StudentSafe } from "@/types/profile";
-
-const KSA_LABELS = {
-  knowledge: "Knowledge",
-  skill: "Skill",
-  ability: "Ability",
-} as const;
 
 type ProposedCurriculumPaneProps = {
   students: StudentSafe[];
 };
 
 export function ProposedCurriculumPane({ students }: ProposedCurriculumPaneProps) {
-  const { proposedCurriculum } = useProposedCurriculum();
+  const { proposedCurriculum, proposedCurriculumError } = useProposedCurriculum();
   const { openChat, openCurriculum } = useMainPane();
   const { settings } = useLessonPlanner();
   const { currentTopic } = useCurrentTopic();
-
-  const activeStudentId = resolveActiveStudentId(
+  const {
+    activeStudentId,
+    approveProposedCurriculum,
+    isBuilding,
+    error,
+    success,
+  } = useApproveProposedCurriculum({
     students,
-    settings.selected_student_ids,
-    currentTopic?.studentId,
-  );
+    selectedStudentIds: settings.selected_student_ids,
+    currentTopicStudentId: currentTopic?.studentId,
+  });
 
   if (!proposedCurriculum) {
     return (
@@ -51,62 +51,51 @@ export function ProposedCurriculumPane({ students }: ProposedCurriculumPaneProps
           </p>
         ) : null}
         <p className="mt-2 text-sm text-muted">
-          Review the proposed learning standards below. Use the AI chat view to
-          save standards, generate KSAs, and schedule the first week.
+          Review the proposed learning standards below, then approve them to save
+          to the curriculum database.
         </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button type="button" onClick={openChat}>
-            Open AI chat & save plan
+        {proposedCurriculumError ? (
+          <p className="mt-3 rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
+            {proposedCurriculumError}
+          </p>
+        ) : null}
+        <div className="mt-4 space-y-3">
+          <Button
+            type="button"
+            disabled={isBuilding || !activeStudentId}
+            onClick={() => void approveProposedCurriculum(proposedCurriculum)}
+          >
+            {isBuilding
+              ? "Approving standards and saving to curriculum…"
+              : "Approve proposed standards"}
           </Button>
           {!activeStudentId ? (
-            <p className="self-center text-xs text-danger">
+            <p className="text-xs text-danger">
               Select a student in Menu → Lesson Planner Options first.
             </p>
           ) : null}
+          {error ? (
+            <p className="rounded-md bg-danger-soft px-2 py-1.5 text-xs text-danger">
+              {error}
+            </p>
+          ) : null}
+          {success ? (
+            <p className="rounded-md bg-accent-soft px-2 py-1.5 text-xs text-foreground">
+              {success}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="secondary" onClick={openChat}>
+              Open AI chat
+            </Button>
+            <Button type="button" variant="secondary" onClick={openCurriculum}>
+              Browse curriculum
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-6">
-        {proposedCurriculum.standards.map((standard, index) => (
-          <section
-            key={`${standard.title}-${index}`}
-            className="rounded-lg border border-border bg-surface p-4"
-          >
-            <h3 className="text-base font-semibold text-foreground">
-              {standard.title}
-            </h3>
-            {standard.domain_title ? (
-              <p className="mt-1 text-xs text-muted">{standard.domain_title}</p>
-            ) : null}
-            {(standard.ksas ?? []).length > 0 ? (
-              <ul className="mt-3 space-y-2">
-                {standard.ksas!.map((ksa, ksaIndex) => (
-                  <li
-                    key={`${ksa.ksa_type}-${ksaIndex}`}
-                    className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  >
-                    <span className="font-medium text-accent">
-                      {KSA_LABELS[ksa.ksa_type]}:
-                    </span>{" "}
-                    {ksa.title}
-                    {ksa.description ? (
-                      <p className="mt-1 text-xs text-muted">{ksa.description}</p>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-3 text-xs text-muted">
-                KSAs will be generated by the LLM when you save this plan.
-              </p>
-            )}
-          </section>
-        ))}
-      </div>
-
-      <Button type="button" variant="secondary" onClick={openCurriculum}>
-        Back to Curriculum
-      </Button>
+      <ProposedStandardsList curriculum={proposedCurriculum} />
     </div>
   );
 }

@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CurriculumDetail, CurriculumSummary } from "@/types/curriculum";
 import type { StudentSafe } from "@/types/profile";
 import { CurriculumList } from "@/components/curriculum/curriculum-list";
 import { CurriculumDetailView } from "@/components/curriculum/curriculum-detail-view";
 import { useCurrentTopic } from "@/components/current-topic/current-topic-context";
 import { useLessonPlanner } from "@/components/lesson-planner/lesson-planner-context";
+import { useMainPane } from "@/components/main-pane/main-pane-context";
 
 type CurriculumPaneProps = {
   curricula: CurriculumSummary[];
@@ -24,6 +25,14 @@ export function CurriculumPane({
   );
   const { currentTopic } = useCurrentTopic();
   const { settings } = useLessonPlanner();
+  const { focusCurriculumId, clearFocusCurriculum } = useMainPane();
+
+  useEffect(() => {
+    if (!focusCurriculumId) return;
+
+    setSelectedCurriculumId(focusCurriculumId);
+    clearFocusCurriculum();
+  }, [focusCurriculumId, clearFocusCurriculum]);
 
   const selectedCurriculum = useMemo(
     () =>

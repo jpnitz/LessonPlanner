@@ -14,7 +14,19 @@ type CurriculumRow = {
   title: string;
   description: string | null;
   sort_order: number;
+  managed_by_user_id?: string | null;
 };
+
+function mapCurriculumRow(row: CurriculumRow): CurriculumSummary {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    description: row.description,
+    sort_order: row.sort_order,
+    is_user_owned: Boolean(row.managed_by_user_id),
+  };
+}
 
 type StandardRow = {
   id: string;
@@ -39,7 +51,7 @@ export async function fetchCurricula(
 ): Promise<CurriculumSummary[]> {
   let query = supabase
     .from("curricula")
-    .select("id, slug, title, description, sort_order")
+    .select("id, slug, title, description, sort_order, managed_by_user_id")
     .order("sort_order", { ascending: true })
     .order("title", { ascending: true });
 
@@ -49,7 +61,7 @@ export async function fetchCurricula(
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []) as CurriculumSummary[];
+  return ((data ?? []) as CurriculumRow[]).map(mapCurriculumRow);
 }
 
 export async function fetchStudentCurriculumIds(
@@ -88,7 +100,7 @@ export async function fetchCurriculumDetail(
 ): Promise<CurriculumDetail | null> {
   const { data: curriculum, error: curriculumError } = await supabase
     .from("curricula")
-    .select("id, slug, title, description, sort_order")
+    .select("id, slug, title, description, sort_order, managed_by_user_id")
     .eq("id", curriculumId)
     .maybeSingle();
 
@@ -151,7 +163,7 @@ export async function fetchCurriculumDetail(
   );
 
   return {
-    ...(curriculum as CurriculumRow),
+    ...mapCurriculumRow(curriculum as CurriculumRow),
     domains,
   };
 }

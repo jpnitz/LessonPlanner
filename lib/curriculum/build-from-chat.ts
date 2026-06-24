@@ -2,19 +2,27 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchCalendarEvents, normalizeEvent } from "@/lib/calendar/fetch";
 import { endOfDay, startOfDay } from "@/lib/calendar/date-utils";
 import { slugifyCurriculumTitle } from "@/lib/curriculum/slug";
+import { fetchCurriculumDetail } from "@/lib/curriculum/fetch";
+import { deleteUserCurriculum } from "@/lib/curriculum/delete-curriculum";
+import { buildFallbackKsas } from "@/lib/curriculum/fallback-ksas";
 import {
   buildKsaGenerationInstruction,
   buildProposedLessonsInstruction,
   callLlm,
   extractProposedKsas,
   extractProposedLessons,
+  PROPOSED_KSAS_MARKER,
 } from "@/lib/llm/client";
 import {
   formatPlannerConstraints,
   scheduleLessonSlots,
 } from "@/lib/lesson-planner/schedule";
 import type { CalendarEventDisplay } from "@/types/calendar";
-import type { LessonPlannerSettings, ProposedCurriculum } from "@/types/curriculum";
+import type {
+  CurriculumDetail,
+  LessonPlannerSettings,
+  ProposedCurriculum,
+} from "@/types/curriculum";
 import type { ProposedLesson } from "@/types/lesson";
 
 type SavedStandard = {
@@ -31,6 +39,7 @@ export type BuildFromChatResult = {
   ksasCount: number;
   lessonsCount: number;
   events: CalendarEventDisplay[];
+  curriculumDetail: CurriculumDetail;
 };
 
 async function saveProposedCurriculum(
@@ -99,25 +108,11 @@ async function generateAndSaveKsas(
   let totalKsas = 0;
 
   for (const standard of standards) {
-    const result = await callLlm(apiKey, [
-      {
-        role: "system",
-        content: buildKsaGenerationInstruction({
-          title: standard.title,
-          domain_title: standard.domain_title,
-          curriculum_title: curriculumTitle,
-        }),
-      },
-      {
-        role: "user",
-        content: `Generate KSAs for standard "${standard.title}".`,
-      },
-    ]);
-
-    const { ksas } = extractProposedKsas(result.content);
-    if (!ksas?.length) {
-      throw new Error(`Could not generate KSAs for "${standard.title}".`);
-    }
+    const ksas = await generateKsasForStandard(
+      apiKey,
+      standard,
+      curriculumTitle,
+    );
 
     const rows = ksas.map((ksa, index) => ({
       standard_id: standard.id,
@@ -133,6 +128,54 @@ async function generateAndSaveKsas(
   }
 
   return totalKsas;
+}
+
+async function generateKsasForStandard(
+  apiKey: string,
+  standard: SavedStandard,
+  curriculumTitle: string,
+) {
+  const systemInstruction = buildKsaGenerationInstruction({
+    title: standard.title,
+    domain_title: standard.domain_title,
+    curriculum_title: curriculumTitle,
+  });
+
+  const attempts: Array<{ temperature: number; userPrompt: string }> = [
+    {
+      temperature: 0.4,
+      userPrompt: `Generate KSAs for standard "${standard.title}".`,
+    },
+    {
+      temperature: 0.2,
+      userPrompt: `Generate KSAs for standard "${standard.title}". Output only the ${PROPOSED_KSAS_MARKER} JSON line with no other text.`,
+    },
+    {
+      temperature: 0.1,
+      userPrompt: `Return exactly one line starting with ${PROPOSED_KSAS_MARKER} followed by compact JSON for KSAs about "${standard.title}".`,
+    },
+  ];
+
+  for (const attempt of attempts) {
+    const result = await callLlm(
+      apiKey,
+      [
+        { role: "system", content: systemInstruction },
+        { role: "user", content: attempt.userPrompt },
+      ],
+      {
+        temperature: attempt.temperature,
+        maxTokens: 2048,
+      },
+    );
+
+    const { ksas } = extractProposedKsas(result.content);
+    if (ksas?.length) {
+      return ksas;
+    }
+  }
+
+  return buildFallbackKsas(standard.title);
 }
 
 async function generateFirstWeekLessons(
@@ -330,29 +373,52 @@ export async function buildCurriculumFromChat(options: {
     options.proposedCurriculum,
   );
 
-  const ksasCount = await generateAndSaveKsas(
-    options.supabase,
-    options.apiKey,
-    saved.standards,
-    saved.curriculumTitle,
-  );
+  try {
+    const ksasCount = await generateAndSaveKsas(
+      options.supabase,
+      options.apiKey,
+      saved.standards,
+      saved.curriculumTitle,
+    );
 
-  const events = await generateFirstWeekLessons(
-    options.supabase,
-    options.apiKey,
-    options.userId,
-    options.studentId,
-    saved.standards,
-    saved.curriculumTitle,
-    options.settings,
-  );
+    const events = await generateFirstWeekLessons(
+      options.supabase,
+      options.apiKey,
+      options.userId,
+      options.studentId,
+      saved.standards,
+      saved.curriculumTitle,
+      options.settings,
+    );
 
-  return {
-    curriculumId: saved.curriculumId,
-    curriculumTitle: saved.curriculumTitle,
-    standardsCount: saved.standards.length,
-    ksasCount,
-    lessonsCount: events.length,
-    events,
-  };
+    const curriculumDetail = await fetchCurriculumDetail(
+      options.supabase,
+      saved.curriculumId,
+    );
+
+    if (!curriculumDetail) {
+      throw new Error("Saved curriculum could not be loaded.");
+    }
+
+    return {
+      curriculumId: saved.curriculumId,
+      curriculumTitle: saved.curriculumTitle,
+      standardsCount: saved.standards.length,
+      ksasCount,
+      lessonsCount: events.length,
+      events,
+      curriculumDetail,
+    };
+  } catch (error) {
+    try {
+      await deleteUserCurriculum(
+        options.supabase,
+        options.userId,
+        saved.curriculumId,
+      );
+    } catch {
+      // Preserve the original pipeline error if cleanup fails.
+    }
+    throw error;
+  }
 }

@@ -7,7 +7,8 @@
     "dev:clean": "pkill -f 'next dev' 2>/dev/null; pkill -f 'next-server' 2>/dev/null; rm -f .next/dev/lock; next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --import tsx --test lib/llm/__tests__/extract-proposed-curriculum.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
@@ -24,6 +25,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
+    "tsx": "^4.20.3",
     "typescript": "^5"
   }
 }

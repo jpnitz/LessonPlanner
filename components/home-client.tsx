@@ -12,6 +12,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { GuestMainPane } from "@/components/guest-main-pane";
 import { AuthenticatedMainPane } from "@/components/main-pane/authenticated-main-pane";
+import { CurriculumCatalogProvider } from "@/components/curriculum/curriculum-catalog-context";
 import { CurrentTopicProvider } from "@/components/current-topic/current-topic-context";
 import { LessonPlannerProvider } from "@/components/lesson-planner/lesson-planner-context";
 import { MenuChatProvider } from "@/components/menu/menu-chat-context";
@@ -64,15 +65,18 @@ export function HomeClient({
         isStudentAccount={isStudentAccount}
       >
         {isAuthenticated && profile ? (
-          <AuthenticatedMainPane
-            profile={profile}
-            email={userEmail ?? ""}
-            students={students}
-            isStudentAccount={isStudentAccount}
-            showProfileIncompleteBanner={showProfileIncompleteBanner}
-            curricula={curricula}
-            curriculumDetails={curriculumDetails}
-          />
+          <CurriculumCatalogProvider
+            initialCurricula={curricula}
+            initialCurriculumDetails={curriculumDetails}
+          >
+            <AuthenticatedMainPane
+              profile={profile}
+              email={userEmail ?? ""}
+              students={students}
+              isStudentAccount={isStudentAccount}
+              showProfileIncompleteBanner={showProfileIncompleteBanner}
+            />
+          </CurriculumCatalogProvider>
         ) : isAuthenticated ? (
           <div className="mx-auto max-w-lg rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger">
             Your account loaded, but profile data is missing. Run the Phase 2 SQL
