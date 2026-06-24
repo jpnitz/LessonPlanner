@@ -52,7 +52,7 @@ export function SiteHeader({
                 onClick={openCurriculum}
                 className="text-sm font-medium text-accent hover:text-accent-hover"
               >
-                Curriculum
+                Your Curriculum
               </button>
               <button
                 type="button"
