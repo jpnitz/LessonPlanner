@@ -74,8 +74,7 @@ export function MenuAiChat({ variant, selectedLessonEvent }: MenuAiChatProps) {
 
       <div
         ref={scrollRef}
-        className="min-h-[6rem] resize-y overflow-y-auto space-y-2 border-b border-border p-3"
-        style={{ height: "12rem", maxHeight: "50vh" }}
+        className="min-h-0 flex-1 space-y-2 overflow-y-auto border-b border-border p-3"
       >
         {messages.length === 0 ? (
           <p className="text-sm text-muted">{emptyHint}</p>

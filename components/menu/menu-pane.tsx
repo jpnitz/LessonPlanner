@@ -31,7 +31,6 @@ export function MenuPane({ students }: MenuPaneProps) {
       <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden pr-1">
         <StudentSelector students={students} />
         <MenuAiChat variant="curriculum" />
-        <MenuNavLinks />
       </div>
     );
   }
@@ -44,7 +43,6 @@ export function MenuPane({ students }: MenuPaneProps) {
           variant="lessons"
           selectedLessonEvent={selectedLessonEvent}
         />
-        <MenuNavLinks />
       </div>
     );
   }
