@@ -15,7 +15,7 @@ type ProposedCurriculumPaneProps = {
 
 export function ProposedCurriculumPane({ students }: ProposedCurriculumPaneProps) {
   const { proposedCurriculum, proposedCurriculumError } = useProposedCurriculum();
-  const { openChat, openCurriculum } = useMainPane();
+  const { openHome, openCurriculum } = useMainPane();
   const { settings } = useLessonPlanner();
   const { currentTopic } = useCurrentTopic();
   const {
@@ -85,8 +85,8 @@ export function ProposedCurriculumPane({ students }: ProposedCurriculumPaneProps
             </p>
           ) : null}
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="secondary" onClick={openChat}>
-              Open AI chat
+            <Button type="button" variant="secondary" onClick={openHome}>
+              Create Curriculum
             </Button>
             <Button type="button" variant="secondary" onClick={openCurriculum}>
               Browse curriculum

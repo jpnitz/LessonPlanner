@@ -10,6 +10,7 @@ import {
 } from "react";
 import { MenuPane } from "@/components/menu/menu-pane";
 import { CalendarPane } from "@/components/calendar/calendar-pane";
+import { useMainPane } from "@/components/main-pane/main-pane-context";
 import type { CalendarEventDisplay } from "@/types/calendar";
 import type { StudentSafe } from "@/types/profile";
 
@@ -72,11 +73,21 @@ export function AppShell({
   initialCalendarEvents = [],
   isStudentAccount = false,
 }: AppShellProps) {
+  const { view } = useMainPane();
   const [menuCollapsed, setMenuCollapsed] = useState(false);
-  const [calendarCollapsed, setCalendarCollapsed] = useState(false);
+  const [calendarCollapsed, setCalendarCollapsed] = useState(true);
   const [menuWidth, setMenuWidth] = useState(320);
   const shellRef = useRef<HTMLDivElement>(null);
   const resizingRef = useRef(false);
+
+  useEffect(() => {
+    if (view === "lessons" || view === "proposed-lessons") {
+      setCalendarCollapsed(false);
+      return;
+    }
+
+    setCalendarCollapsed(true);
+  }, [view]);
 
   useEffect(() => {
     function setInitialMenuWidth() {

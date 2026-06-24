@@ -1,57 +1,64 @@
 "use client";
 
-import { useRef, useState } from "react";
 import type { StudentSafe } from "@/types/profile";
+import { useMainPane } from "@/components/main-pane/main-pane-context";
 import { LessonPlannerOptions } from "@/components/menu/lesson-planner-options";
-import { AiChatWindow } from "@/components/menu/ai-chat-window";
+import { MenuNavLinks } from "@/components/menu/menu-nav-links";
+import { MenuAiChat } from "@/components/menu/menu-ai-chat";
+import { StudentSelector } from "@/components/menu/student-selector";
 
 type MenuPaneProps = {
   students: StudentSafe[];
 };
 
 export function MenuPane({ students }: MenuPaneProps) {
-  const [chatDraft, setChatDraft] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
-  const chatActionsRef = useRef<{
-    createCurriculum: () => Promise<void>;
-    resetChat: () => void;
-  } | null>(null);
+  const { view, selectedLessonEvent } = useMainPane();
 
-  async function handleCreateCurriculum() {
-    if (!chatDraft.trim() || !chatActionsRef.current) return;
-    setIsCreating(true);
-    try {
-      await chatActionsRef.current.createCurriculum();
-    } finally {
-      setIsCreating(false);
-    }
+  if (view === "home" || view === "profile") {
+    return (
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto pr-1">
+        <div className="shrink-0">
+          <p className="text-base font-semibold text-foreground">Menu</p>
+        </div>
+        <LessonPlannerOptions students={students} />
+        <MenuNavLinks />
+      </div>
+    );
   }
 
-  function handleResetChat() {
-    chatActionsRef.current?.resetChat();
+  if (view === "curriculum") {
+    return (
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto pr-1">
+        <div className="shrink-0">
+          <p className="text-base font-semibold text-foreground">Menu</p>
+        </div>
+        <MenuAiChat variant="curriculum" />
+        <StudentSelector students={students} />
+        <MenuNavLinks />
+      </div>
+    );
+  }
+
+  if (view === "lessons" || view === "proposed-lessons") {
+    return (
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto pr-1">
+        <div className="shrink-0">
+          <p className="text-base font-semibold text-foreground">Menu</p>
+        </div>
+        <MenuAiChat
+          variant="lessons"
+          selectedLessonEvent={selectedLessonEvent}
+        />
+        <StudentSelector students={students} />
+        <MenuNavLinks />
+      </div>
+    );
   }
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto pr-1">
-        <div className="shrink-0">
-          <p className="text-base font-semibold text-foreground">Menu</p>
-        </div>
-
-        <AiChatWindow
-          draft={chatDraft}
-          onDraftChange={setChatDraft}
-          onRegisterActions={(actions) => {
-            chatActionsRef.current = actions;
-          }}
-        />
-
-        <LessonPlannerOptions
-          students={students}
-          chatDraft={chatDraft}
-          onCreateCurriculum={handleCreateCurriculum}
-          onResetChat={handleResetChat}
-          isCreating={isCreating}
-        />
-      </div>
+      <LessonPlannerOptions students={students} />
+      <MenuNavLinks />
+    </div>
   );
 }
