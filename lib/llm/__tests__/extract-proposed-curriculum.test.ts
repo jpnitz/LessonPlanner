@@ -126,4 +126,13 @@ Let me know if you'd like more detail.`;
     assert.equal(result.ksas?.length, 3);
     assert.equal(result.ksas?.[1]?.ksa_type, "skill");
   });
+
+  it("extracts KSAs without the marker when a ksas array is present", () => {
+    const content = `Here are draft KSAs:
+{"ksas":[{"ksa_type":"knowledge","title":"Identify soil nutrients","description":"..."},{"ksa_type":"skill","title":"Collect soil samples","description":"..."},{"ksa_type":"ability","title":"Recommend fertilizer plans","description":"..."}]}`;
+
+    const result = extractProposedKsas(content);
+
+    assert.equal(result.ksas?.length, 3);
+  });
 });

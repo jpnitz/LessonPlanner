@@ -27,6 +27,9 @@ export function CurriculumList({ curricula, onSelect }: CurriculumListProps) {
             className="w-full rounded-lg border border-border bg-surface p-4 text-left transition-colors hover:border-accent hover:bg-accent-soft"
           >
             <p className="font-medium text-foreground">{curriculum.title}</p>
+            {curriculum.is_user_owned ? (
+              <p className="mt-1 text-xs text-muted">Custom curriculum — you can delete it from the detail view.</p>
+            ) : null}
             {curriculum.description ? (
               <p className="mt-1 text-sm text-muted">{curriculum.description}</p>
             ) : null}

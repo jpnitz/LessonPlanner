@@ -5,6 +5,7 @@ import { useCurrentTopic } from "@/components/current-topic/current-topic-contex
 import { useLessonPlanner } from "@/components/lesson-planner/lesson-planner-context";
 import { resolveActiveStudentId } from "@/lib/students/access";
 import { GenerateLessonsAction } from "@/components/lessons/generate-lessons-action";
+import { DeleteCurriculumButton } from "@/components/curriculum/delete-curriculum-button";
 import type { StudentSafe } from "@/types/profile";
 
 const KSA_LABELS = {
@@ -55,6 +56,15 @@ export function CurriculumDetailView({
           Click a standard to select it as the current topic. Click again to
           clear the selection.
         </p>
+        {curriculum.is_user_owned ? (
+          <div className="mt-4">
+            <DeleteCurriculumButton
+              curriculumId={curriculum.id}
+              curriculumTitle={curriculum.title}
+              onDeleted={onBack}
+            />
+          </div>
+        ) : null}
       </div>
 
       <div className="space-y-6">

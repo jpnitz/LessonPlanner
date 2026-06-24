@@ -15,6 +15,7 @@ type CurriculumCatalogContextValue = {
   curricula: CurriculumSummary[];
   curriculumDetails: CurriculumDetail[];
   upsertSavedCurriculum: (detail: CurriculumDetail) => void;
+  removeCurriculum: (curriculumId: string) => void;
 };
 
 const CurriculumCatalogContext =
@@ -48,6 +49,7 @@ export function CurriculumCatalogProvider({
       title: detail.title,
       description: detail.description,
       sort_order: detail.sort_order,
+      is_user_owned: detail.is_user_owned,
     };
 
     setCurricula((current) => {
@@ -74,13 +76,23 @@ export function CurriculumCatalogProvider({
     });
   }, []);
 
+  const removeCurriculum = useCallback((curriculumId: string) => {
+    setCurricula((current) =>
+      current.filter((curriculum) => curriculum.id !== curriculumId),
+    );
+    setCurriculumDetails((current) =>
+      current.filter((curriculum) => curriculum.id !== curriculumId),
+    );
+  }, []);
+
   const value = useMemo(
     () => ({
       curricula,
       curriculumDetails,
       upsertSavedCurriculum,
+      removeCurriculum,
     }),
-    [curricula, curriculumDetails, upsertSavedCurriculum],
+    [curricula, curriculumDetails, upsertSavedCurriculum, removeCurriculum],
   );
 
   return (

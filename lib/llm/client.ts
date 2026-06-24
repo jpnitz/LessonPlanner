@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { validateAndNormalizeProposedCurriculum } from "@/lib/curriculum/validate-proposed";
-import { parseJsonAfterMarker } from "@/lib/llm/json-extract";
+import { parseJsonAfterMarker, extractBalancedJsonObject, stripMarkdownJsonFence } from "@/lib/llm/json-extract";
 import {
   PROPOSED_KSAS_MARKER,
   PROPOSED_LESSONS_MARKER,
@@ -254,15 +254,34 @@ Do not include the JSON block until the lesson plans are complete.`;
 }
 
 export function extractProposedKsas(content: string) {
-  const { jsonObject, visibleContent } = parseJsonAfterMarker(
-    content,
-    PROPOSED_KSAS_MARKER,
-  );
-
-  if (!jsonObject) {
-    return { visibleContent: content, ksas: null };
+  const markerResult = parseJsonAfterMarker(content, PROPOSED_KSAS_MARKER);
+  if (markerResult.jsonObject) {
+    return parseKsasPayload(markerResult.jsonObject, markerResult.visibleContent);
   }
 
+  const ksasKeyIndex = content.indexOf('"ksas"');
+  if (ksasKeyIndex !== -1) {
+    const searchStart = content.lastIndexOf("{", ksasKeyIndex);
+    const candidate =
+      searchStart >= 0
+        ? content.slice(searchStart)
+        : content.slice(ksasKeyIndex);
+    const jsonObject =
+      extractBalancedJsonObject(stripMarkdownJsonFence(candidate)) ??
+      extractBalancedJsonObject(content);
+
+    if (jsonObject) {
+      const parsed = parseKsasPayload(jsonObject, content.slice(0, ksasKeyIndex).trim());
+      if (parsed.ksas?.length) {
+        return parsed;
+      }
+    }
+  }
+
+  return { visibleContent: content, ksas: null };
+}
+
+function parseKsasPayload(jsonObject: string, visibleContent: string) {
   try {
     const parsed = JSON.parse(jsonObject) as {
       ksas?: Array<{

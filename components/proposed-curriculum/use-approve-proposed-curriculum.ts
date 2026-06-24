@@ -7,6 +7,7 @@ import { useCurriculumCatalog } from "@/components/curriculum/curriculum-catalog
 import { useMainPane } from "@/components/main-pane/main-pane-context";
 import { useProposedCurriculum } from "@/components/proposed-curriculum/proposed-curriculum-context";
 import { resolveActiveStudentId } from "@/lib/students/access";
+import { requestCalendarRefresh } from "@/lib/ui/app-events";
 import type { StudentSafe } from "@/types/profile";
 
 type UseApproveProposedCurriculumOptions = {
@@ -94,6 +95,7 @@ export function useApproveProposedCurriculum({
         );
         clearProposedCurriculum();
         openCurriculumWithId(result.curriculumId);
+        requestCalendarRefresh();
         router.refresh();
         return true;
       } catch (buildError) {

@@ -30,6 +30,7 @@ export type Curriculum = {
   title: string;
   description: string | null;
   sort_order: number;
+  is_user_owned?: boolean;
 };
 
 export type CurriculumSummary = Curriculum;

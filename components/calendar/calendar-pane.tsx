@@ -25,6 +25,7 @@ import {
 } from "@/components/calendar/calendar-event-chip";
 import { CustomEventForm } from "@/components/calendar/custom-event-form";
 import { GoogleCalendarStub } from "@/components/calendar/google-calendar-stub";
+import { CALENDAR_REFRESH_EVENT } from "@/lib/ui/app-events";
 
 type CalendarPaneProps = {
   students: StudentSafe[];
@@ -99,6 +100,15 @@ export function CalendarPane({
 
   useEffect(() => {
     void refreshEvents();
+  }, [refreshEvents]);
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      void refreshEvents();
+    };
+
+    window.addEventListener(CALENDAR_REFRESH_EVENT, handleRefresh);
+    return () => window.removeEventListener(CALENDAR_REFRESH_EVENT, handleRefresh);
   }, [refreshEvents]);
 
   useEffect(() => {
